@@ -1,48 +1,24 @@
 import Link from "next/link";
+import { listMarketplaceBounties, marketplaceStats } from "@/lib/db";
+import BountyCard from "@/components/BountyCard";
+import { money } from "@/lib/format";
 
-export default function Home() {
-  return (
-    <main>
-      <section className="hero shell">
-        <div className="eyebrow">CUSTOMER ACQUISITION, WITH A PRICE ON IT</div>
-        <h1>Need customers?<br/><em>Put a bounty on them.</em></h1>
-        <p className="hero-copy">Turn your launch into a public referral bounty. People share your product because there is finally something in it for them.</p>
-        <div className="hero-actions">
-          <Link href="/create" className="button primary">Launch a bounty — $9</Link>
-          <a href="#how" className="button ghost">See how it works</a>
-        </div>
-        <div className="proof-line"><span>Founder pays referrers directly</span><span>•</span><span>No escrow</span><span>•</span><span>Live in minutes</span></div>
-      </section>
+export const dynamic = "force-dynamic";
 
-      <section className="demo-wrap shell">
-        <div className="demo-card">
-          <div className="demo-top"><span className="live-dot" /> LIVE BOUNTY <span className="demo-code">#01</span></div>
-          <h2>Help Acme get its first 10 paying teams.</h2>
-          <p>Bring a team that starts a paid plan.</p>
-          <div className="reward-grid">
-            <div><span>REWARD</span><strong>$50</strong><small>per customer</small></div>
-            <div><span>PROGRESS</span><strong>3 / 10</strong><small>approved</small></div>
-            <div><span>BOUNTY</span><strong>$500</strong><small>total opportunity</small></div>
-          </div>
-          <div className="progress"><div style={{width:"30%"}} /></div>
-          <button className="button dark" type="button">Get my referral link →</button>
-        </div>
-      </section>
+export default async function Home() {
+  let bounties = [] as Awaited<ReturnType<typeof listMarketplaceBounties>>;
+  let stats = { campaigns: 0, open_reward_cents: "0", network_members: 0 };
+  try { [bounties, stats] = await Promise.all([listMarketplaceBounties(6), marketplaceStats()]); } catch {}
 
-      <section id="how" className="section shell">
-        <div className="section-kicker">HOW IT WORKS</div>
-        <div className="steps">
-          <article><b>01</b><h3>Set the bounty</h3><p>Define the customer action, reward per conversion, and how many customers you want.</p></article>
-          <article><b>02</b><h3>Post it on X</h3><p>People claim personal referral links and distribute your offer because successful referrals pay them.</p></article>
-          <article><b>03</b><h3>Verify + pay</h3><p>You confirm valid customers in the founder dashboard and pay referrers directly.</p></article>
-        </div>
-      </section>
+  return <main>
+    <section className="hero-new shell"><div className="hero-pill">THE CUSTOMER-ACQUISITION NETWORK</div><h1>Companies need customers.<br/><span>We route the opportunity.</span></h1><p>FirstCustomer turns a customer-acquisition budget into a live network mission. Companies define the outcome once. We publish it, match it to people who can deliver it, track attribution and settle verified rewards.</p><div className="hero-actions"><Link className="button primary" href="/create">Launch a mission</Link><Link className="button secondary" href="/network">Join the network</Link><Link className="button ghost" href="/explore">Browse missions</Link></div><div className="trust-row"><span>✓ No founder post required</span><span>✓ Outcome-based economics</span><span>✓ Verified payment state</span><span>✓ Tracked referrals</span></div></section>
 
-      <section className="cta shell">
-        <p>Founders need customers. Everyone else needs money.</p>
-        <h2>Connect the incentives.</h2>
-        <Link href="/create" className="button primary">Launch yours for $9 →</Link>
-      </section>
-    </main>
-  );
+    <section className="network-loop shell"><div className="loop-copy"><span>THE DIFFERENCE</span><h2>A campaign is not distribution.</h2><p>Most referral tools give a founder a link and hope they promote it. FirstCustomer maintains the demand side and the distribution side.</p></div><div className="loop-visual"><div><b>1</b><strong>Company launches</strong><span>Sets customer criteria + reward</span></div><i>→</i><div><b>2</b><strong>Network matches</strong><span>Routes mission by category + economics</span></div><i>→</i><div><b>3</b><strong>Member claims</strong><span>Gets tracked link instantly</span></div><i>→</i><div><b>4</b><strong>Customer converts</strong><span>Company verifies outcome</span></div><i>→</i><div><b>5</b><strong>Reward settles</strong><span>Referrer earns; FirstCustomer earns</span></div></div></section>
+
+    <section className="market shell"><div className="section-head"><div><span>LIVE NETWORK</span><h2>Customer missions worth distributing</h2></div><Link href="/explore">Explore all →</Link></div><div className="market-statbar home-stats"><div><strong>{stats.campaigns}</strong><span>live missions</span></div><div><strong>{money(Number(stats.open_reward_cents))}</strong><span>open rewards</span></div><div><strong>{stats.network_members}</strong><span>network members</span></div></div>{bounties.length ? <div className="campaign-grid">{bounties.map((bounty) => <BountyCard key={bounty.id} bounty={bounty} />)}</div> : <div className="empty-market"><div className="empty-orb">N</div><h3>The network is ready for its first real company mission.</h3><p>We do not manufacture fake advertisers. When the first company pays and activates a campaign, it appears here and is matched to network members automatically.</p><div className="hero-actions centered-actions"><Link className="button primary" href="/create">Launch the first mission →</Link><Link className="button secondary" href="/network">Join before it arrives</Link></div></div>}</section>
+
+    <section className="example-section shell"><div className="example-copy"><span>CONCRETE EXAMPLE</span><h2>Suppose an AI company wants 100 new Team customers.</h2><p>It posts one mission: “$75 for each new Team customer that stays active seven days.” FirstCustomer verifies the company payment method, publishes the mission, routes it to AI/software network members, and lets each member claim a unique referral link. The company never has to tweet.</p></div><div className="example-card"><div className="fake-label">ILLUSTRATIVE — NOT A LIVE CAMPAIGN</div><div className="campaign-company"><div className="company-mark">AI</div><div><strong>Example AI Co.</strong><span>Artificial Intelligence</span></div><span className="verified-badge">Payment verified</span></div><h3>Refer a new Team customer</h3><div className="big-reward">$75 <small>per approved customer</small></div><div className="distribution-preview"><div><span>Network matches</span><strong>42</strong></div><div><span>Mission claims</span><strong>11</strong></div><div><span>Verified customers</span><strong>3</strong></div></div><div className="flow-line"><span>Company launches</span><i>→</i><span>Network routes</span><i>→</i><span>Members claim</span><i>→</i><span>Customers convert</span><i>→</i><span>Rewards settle</span></div></div></section>
+
+    <section id="how" className="how shell"><div className="section-head"><div><span>ONE SYSTEM</span><h2>Demand, distribution, attribution and settlement.</h2></div></div><div className="steps-new"><article><b>01</b><h3>Company defines the customer</h3><p>Exact conversion criteria, reward, goal, terms and payout method.</p></article><article><b>02</b><h3>FirstCustomer distributes</h3><p>Marketplace publication plus ranked matching into the private Network mission feed.</p></article><article><b>03</b><h3>Referrer claims a mission</h3><p>One click creates a tracked link and private earnings dashboard.</p></article><article><b>04</b><h3>Verified economics settle</h3><p>Approved conversions become earned rewards, payout state and platform revenue.</p></article></div></section>
+  </main>;
 }

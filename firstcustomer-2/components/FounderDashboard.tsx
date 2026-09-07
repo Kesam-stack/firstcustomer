@@ -1,47 +1,63 @@
 "use client";
 
 import { useState } from "react";
-import type { Bounty, Referral } from "@/lib/types";
+import type { Bounty, Referral, Conversion } from "@/lib/types";
 import { money } from "@/lib/format";
 
-export default function FounderDashboard({ bounty, referrals, ownerKey }: { bounty: Bounty; referrals: Referral[]; ownerKey: string }) {
-  const [rows, setRows] = useState(referrals);
+export default function FounderDashboard({ bounty, referrals, conversions, ownerKey, integrationKey, networkMatchCount }: { bounty: Bounty; referrals: Referral[]; conversions: Conversion[]; ownerKey: string; integrationKey?: string; networkMatchCount: number }) {
   const [message, setMessage] = useState("");
-  const publicUrl = `${windowOrigin()}/b/${bounty.slug}`;
+  const [refreshing, setRefreshing] = useState(false);
+  const publicUrl = `${typeof window !== "undefined" ? location.origin : ""}/b/${bounty.slug}`;
 
   async function approve(referralId: string) {
-    const customerReference = window.prompt("Customer reference (email, invoice ID, CRM ID, etc.)");
+    const customerReference = prompt("Customer reference (CRM ID, invoice ID, email hash, etc.)");
     if (!customerReference) return;
-    setMessage("");
-    const res = await fetch(`/api/manage/${bounty.id}/conversion`, {
+    const response = await fetch(`/api/manage/${bounty.id}/conversion`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-owner-key": ownerKey },
       body: JSON.stringify({ referralId, customerReference }),
     });
-    const data = await res.json();
-    if (!res.ok) { setMessage(data.error || "Could not approve conversion"); return; }
-    setRows(r => r.map(x => x.id === referralId ? { ...x, approved_conversions: x.approved_conversions + 1 } : x));
-    setMessage("Conversion approved. Remember: you are responsible for paying the referrer directly.");
+    const data = await response.json();
+    if (!response.ok) return setMessage(data.error || "Could not approve");
+    setMessage(data.payout?.status === "paid" ? "Conversion approved and reward paid." : `Conversion approved. Payout status: ${data.payout?.status || "recorded"}.`);
+    location.reload();
   }
 
-  return (
-    <main className="shell page-pad">
-      <div className="dashboard-head"><div><div className="eyebrow">FOUNDER DASHBOARD</div><h1>{bounty.company_name}</h1><p className="muted">{bounty.headline}</p></div><a className="button dark" href={`/b/${bounty.slug}`} target="_blank" rel="noreferrer" referrerPolicy="no-referrer">View public bounty ↗</a></div>
-      <div className="stats"><div><span>APPROVED</span><strong>{bounty.approved_count}</strong></div><div><span>GOAL</span><strong>{bounty.goal_count}</strong></div><div><span>REWARD</span><strong>{money(bounty.reward_cents)}</strong></div><div><span>STATUS</span><strong>{bounty.status}</strong></div></div>
-      <div className="share-strip"><span>Public URL</span><code>{publicUrl}</code><button onClick={() => navigator.clipboard.writeText(publicUrl)}>Copy</button></div>
-      {message && <div className="notice">{message}</div>}
-      <section className="table-card">
-        <div className="table-head"><h2>Referrers</h2><span>{rows.length} total</span></div>
-        {rows.length === 0 ? <div className="empty">No one has claimed a referral link yet. Post the public bounty on X.</div> : (
-          <div className="table-scroll"><table><thead><tr><th>Referrer</th><th>Code</th><th>Clicks</th><th>Approved</th><th>Earned*</th><th></th></tr></thead><tbody>{rows.map(r => <tr key={r.id}><td>@{r.x_handle}</td><td><code>{r.code}</code></td><td>{r.clicks}</td><td>{r.approved_conversions}</td><td>{money(r.approved_conversions * bounty.reward_cents)}</td><td><button className="tiny-button" onClick={() => approve(r.id)}>+ approve customer</button></td></tr>)}</tbody></table></div>
-        )}
-        <p className="fineprint">*Informational only. FirstCustomer does not custody or transmit bounty funds. You must pay eligible referrers yourself and keep appropriate records.</p>
-      </section>
-    </main>
-  );
-}
+  async function retry(conversionId: string) {
+    const response = await fetch(`/api/manage/${bounty.id}/payout`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-owner-key": ownerKey },
+      body: JSON.stringify({ conversionId }),
+    });
+    const data = await response.json();
+    setMessage(data.status === "paid" ? "Reward paid successfully." : data.error || `Payout status: ${data.status}`);
+    if (data.status === "paid") location.reload();
+  }
 
-function windowOrigin() {
-  if (typeof window !== "undefined") return window.location.origin;
-  return process.env.NEXT_PUBLIC_APP_URL || "";
+  async function refreshNetwork() {
+    setRefreshing(true);
+    const response = await fetch(`/api/manage/${bounty.id}/network`, { method: "POST", headers: { "x-owner-key": ownerKey } });
+    const data = await response.json();
+    setRefreshing(false);
+    if (!response.ok) return setMessage(data.error || "Could not refresh network distribution");
+    setMessage(`Network refreshed: ${data.matched} current matches, ${data.notified} alerts sent this pass.`);
+    location.reload();
+  }
+
+  return <main className="shell page-pad">
+    <div className="dashboard-head"><div><span>COMPANY COMMAND CENTER</span><h1>{bounty.company_name}</h1><p className="muted">{bounty.headline}</p></div><a className="button dark" href={`/b/${bounty.slug}`} target="_blank">View public mission ↗</a></div>
+
+    <div className="distribution-card"><div><span>FIRSTCUSTOMER NETWORK</span><h2>Distribution is active.</h2><p>Your mission is discoverable inside FirstCustomer. External posting is optional.</p></div><div className="distribution-number"><strong>{networkMatchCount}</strong><span>members matched</span></div><button className="button secondary" disabled={refreshing || bounty.status !== "active"} onClick={refreshNetwork}>{refreshing ? "Refreshing…" : "Refresh matches"}</button></div>
+
+    <div className="stats"><div><span>Approved</span><strong>{bounty.approved_count}</strong></div><div><span>Goal</span><strong>{bounty.goal_count}</strong></div><div><span>Reward</span><strong>{money(bounty.reward_cents)}</strong></div><div><span>Referrers</span><strong>{referrals.length}</strong></div></div>
+
+    <div className="share-strip"><span>Optional external distribution</span><code>{publicUrl}</code><button onClick={() => navigator.clipboard.writeText(publicUrl)}>Copy</button></div>
+    {integrationKey && <div className="integration-box"><b>Conversion API key — shown on this launch link</b><code>{integrationKey}</code><p className="fineprint">POST conversions to /api/v1/conversions with this key as a Bearer token. Keep it private.</p></div>}
+    {message && <div className="notice">{message}</div>}
+
+    <section className="table-card"><div className="table-head"><h2>Referrers</h2><span>{referrals.length} total</span></div><div className="table-scroll"><table><thead><tr><th>Referrer</th><th>Clicks</th><th>Approved</th><th>Earned</th><th>Payout ready</th><th></th></tr></thead><tbody>{referrals.length ? referrals.map((referral) => <tr key={referral.id}><td>@{referral.x_handle}</td><td>{referral.clicks}</td><td>{referral.approved_conversions}</td><td>{money(referral.earned_cents)}</td><td>{referral.payouts_enabled ? "Yes" : "No"}</td><td><button className="tiny-button" onClick={() => approve(referral.id)}>Approve customer</button></td></tr>) : <tr><td colSpan={6}>No one has claimed this mission yet. Network matches are active above.</td></tr>}</tbody></table></div></section>
+
+    <section className="table-card"><div className="table-head"><h2>Conversions & payouts</h2><span>{conversions.length}</span></div><div className="table-scroll"><table><thead><tr><th>Referrer</th><th>Customer ref</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>{conversions.length ? conversions.map((conversion) => <tr key={conversion.id}><td>@{conversion.x_handle}</td><td>{conversion.customer_reference}</td><td>{money(conversion.reward_cents)}</td><td><span className={`status-pill ${conversion.payout_status === "paid" ? "status-paid" : ""}`}>{conversion.payout_status}</span></td><td>{bounty.payout_mode === "stripe" && conversion.payout_status !== "paid" ? <button className="tiny-button" onClick={() => retry(conversion.id)}>Retry payout</button> : null}</td></tr>) : <tr><td colSpan={5}>No verified customer conversions yet.</td></tr>}</tbody></table></div></section>
+    <p className="fineprint">Automatic payout campaigns charge the company only after approval, then transfer the advertised reward to an eligible Stripe-connected referrer. The configured FirstCustomer success fee is charged in addition to the reward.</p>
+  </main>;
 }

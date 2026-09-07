@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "next": "16.3.4",
@@ -23,5 +24,8 @@
     "@types/react-dom": "^19.2.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=20.9.0"
   }
 }

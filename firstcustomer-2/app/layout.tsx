@@ -2,28 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "FirstCustomer — put a bounty on your next customer",
-  description: "Launch a public customer bounty. Reward people who bring you real customers.",
-  referrer: "no-referrer",
-};
+export const metadata: Metadata = { title: "FirstCustomer — Customer acquisition network", description: "Companies pay for verified customers. FirstCustomer routes missions to people who can deliver them." };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="en">
-      <body>
-        <header className="nav shell">
-          <Link href="/" className="brand">firstcustomer<span>.xyz</span></Link>
-          <nav>
-            <Link href="/create" className="nav-link">Launch a bounty</Link>
-          </nav>
-        </header>
-        {children}
-        <footer className="footer shell">
-          <span>© {new Date().getFullYear()} FirstCustomer</span>
-          <span className="footer-links"><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link></span>
-        </footer>
-      </body>
-    </html>
-  );
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html lang="en"><body><header className="site-header"><div className="shell nav-new"><Link href="/" className="brand-new">FirstCustomer<span>.</span></Link><nav><Link href="/explore">Missions</Link><Link href="/network">Earn</Link><Link href="/#how">How it works</Link><Link href="/create" className="nav-cta">Launch a mission</Link></nav></div></header>{children}<footer className="site-footer"><div className="shell footer-new"><div><b>FirstCustomer.</b><span>The customer-acquisition network.</span></div><div><Link href="/explore">Missions</Link><Link href="/network">Network</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link></div></div></footer></body></html>;
 }

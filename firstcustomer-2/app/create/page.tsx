@@ -1,12 +1,6 @@
 import CreateBountyForm from "@/components/CreateBountyForm";
+import { config, launchFeeDollars, platformFeePercent } from "@/lib/config";
 
-export default function CreatePage() {
-  return (
-    <main className="shell narrow page-pad">
-      <div className="eyebrow">LAUNCH YOUR BOUNTY</div>
-      <h1 className="page-title">What is a new customer worth to you?</h1>
-      <p className="muted lead">You pay FirstCustomer a $9 launch fee. You keep control of customer verification and pay referrers directly.</p>
-      <CreateBountyForm />
-    </main>
-  );
+export default function Create() {
+  return <main className="narrow page-pad"><div className="page-heading"><span>FOR COMPANIES</span><h1>Launch a customer mission.</h1><p>Define the outcome, reward and eligibility once. FirstCustomer publishes it, routes it through the network, tracks referrals, and records verified conversion economics.</p></div><CreateBountyForm launchFeeDollars={launchFeeDollars} platformFeePercent={platformFeePercent} minimumRewardDollars={config.minimumRewardCents / 100} /></main>;
 }
