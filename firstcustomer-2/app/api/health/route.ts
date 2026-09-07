@@ -9,9 +9,20 @@ export async function GET() {
       ok: true,
       service: "firstcustomer",
       database: { ok: true, at: database.rows[0]?.now || null },
-      payments: { stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY), webhookConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET) },
-      network: { emailAlertsConfigured: Boolean(process.env.RESEND_API_KEY), notificationLimit: config.networkNotificationLimit },
-      economics: { launchFeeCents: config.launchFeeCents, platformFeeBps: config.platformFeeBps, minimumRewardCents: config.minimumRewardCents },
+      payments: {
+        stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
+        webhookConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET)
+      },
+      network: {
+        emailAlertsConfigured: Boolean(process.env.RESEND_API_KEY),
+        notificationLimit: config.networkNotificationLimit,
+        rainmakerThreshold: config.rainmakerThreshold
+      },
+      economics: {
+        launchFeeCents: config.launchFeeCents,
+        platformFeeBps: config.platformFeeBps,
+        minimumRewardCents: config.minimumRewardCents
+      }
     });
   } catch (error) {
     console.error(error);

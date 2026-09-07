@@ -11,6 +11,7 @@ export const config = {
   platformFeeBps: intEnv("FC_PLATFORM_FEE_BPS", 1000, 0, 5000),
   minimumRewardCents: intEnv("FC_MIN_REWARD_CENTS", 500, 100, 10_000_000),
   networkNotificationLimit: intEnv("FC_NETWORK_NOTIFICATION_LIMIT", 25, 0, 250),
+  rainmakerThreshold: intEnv("FC_RAINMAKER_THRESHOLD", 3, 1, 1000),
   appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   emailFrom: process.env.EMAIL_FROM || "FirstCustomer <alerts@firstcustomer.app>",
 };

@@ -1,5 +1,6 @@
 import { Pool, type QueryResultRow } from "pg";
 import type { Bounty, Referral, Conversion, NetworkMember, CampaignMatch } from "@/lib/types";
+import { config } from "@/lib/config";
 
 const globalForDb = globalThis as unknown as { pool?: Pool };
 function getPool() {
@@ -58,6 +59,56 @@ export async function marketplaceStats() {
   return r.rows[0] ?? { campaigns: 0, open_reward_cents: "0", network_members: 0 };
 }
 
+export type PublicPayout = {
+  paid_at: string;
+  reward_cents: number;
+  company_name: string;
+  slug: string;
+  x_handle: string;
+  total_approved: number;
+  rainmaker: boolean;
+};
+
+export async function listPublicPayouts(limit = 12): Promise<PublicPayout[]> {
+  const r = await query<PublicPayout>(
+    `SELECT c.paid_at::text,
+            c.reward_cents,
+            b.company_name,
+            b.slug,
+            r.x_handle,
+            COALESCE((
+              SELECT SUM(r2.approved_conversions)::int
+              FROM referrals r2
+              WHERE lower(r2.x_handle)=lower(r.x_handle)
+            ),0) total_approved,
+            COALESCE((
+              SELECT SUM(r3.approved_conversions)
+              FROM referrals r3
+              WHERE lower(r3.x_handle)=lower(r.x_handle)
+            ),0) >= $2 rainmaker
+       FROM conversion_claims c
+       JOIN bounties b ON b.id=c.bounty_id
+       JOIN referrals r ON r.id=c.referral_id
+      WHERE c.payout_status='paid' AND c.paid_at IS NOT NULL
+      ORDER BY c.paid_at DESC
+      LIMIT $1`,
+    [limit, config.rainmakerThreshold],
+  );
+  return r.rows;
+}
+
+export async function publicLedgerStats() {
+  const r = await query<{ total_paid_cents: string; payout_count: number; companies_paid: number }>(
+    `SELECT
+      COALESCE(SUM(reward_cents),0)::text total_paid_cents,
+      COUNT(*)::int payout_count,
+      COUNT(DISTINCT bounty_id)::int companies_paid
+     FROM conversion_claims
+     WHERE payout_status='paid' AND paid_at IS NOT NULL`,
+  );
+  return r.rows[0] ?? { total_paid_cents: "0", payout_count: 0, companies_paid: 0 };
+}
+
 export async function listReferrals(bountyId: string): Promise<Referral[]> {
   const r = await query<Referral>(`SELECT id,bounty_id,code,x_handle,contact_email,clicks,approved_conversions,earned_cents,paid_cents,stripe_account_id,payouts_enabled,created_at::text FROM referrals WHERE bounty_id=$1 ORDER BY approved_conversions DESC,clicks DESC,created_at ASC`, [bountyId]);
   return r.rows;
@@ -68,8 +119,8 @@ export async function listConversions(bountyId: string): Promise<Conversion[]> {
   return r.rows;
 }
 
-export async function getReferralByCode(code: string): Promise<(Referral & { company_name: string; bounty_slug: string; headline: string; reward_cents: number; payout_mode: string }) | null> {
-  const r = await query<any>(`SELECT r.id,r.bounty_id,r.code,r.x_handle,r.contact_email,r.clicks,r.approved_conversions,r.earned_cents,r.paid_cents,r.stripe_account_id,r.payouts_enabled,r.created_at::text,b.company_name,b.slug bounty_slug,b.headline,b.reward_cents,b.payout_mode FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE r.code=$1 LIMIT 1`, [code]);
+export async function getReferralByCode(code: string): Promise<(Referral & { company_name: string; bounty_slug: string; headline: string; reward_cents: number; payout_mode: string; global_approved: number }) | null> {
+  const r = await query<any>(`SELECT r.id,r.bounty_id,r.code,r.x_handle,r.contact_email,r.clicks,r.approved_conversions,r.earned_cents,r.paid_cents,r.stripe_account_id,r.payouts_enabled,r.created_at::text,b.company_name,b.slug bounty_slug,b.headline,b.reward_cents,b.payout_mode,COALESCE((SELECT SUM(r2.approved_conversions)::int FROM referrals r2 WHERE lower(r2.x_handle)=lower(r.x_handle)),0) global_approved FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE r.code=$1 LIMIT 1`, [code]);
   return r.rows[0] ?? null;
 }
 
