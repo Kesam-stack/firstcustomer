@@ -37,7 +37,11 @@ export default async function Home() {
       <p className="board-kicker">Highest funded bounty sits at #1</p>
       <h1>Pay for customers.<br />Not clicks.</h1>
       <p className="board-sub">Companies price a customer. People deliver it.</p>
-      <QuickLaunch minimumRewardDollars={config.minimumRewardCents / 100} />
+      <QuickLaunch
+        minimumRewardDollars={config.minimumRewardCents / 100}
+        maximumRewardDollars={config.maximumRewardCents / 100}
+        maximumGoalCount={config.maximumGoalCount}
+      />
     </section>
 
     <section className="board-meta">
@@ -64,6 +68,7 @@ export default async function Home() {
               <span>The board is open</span>
               <strong>First funded listing takes #1.</strong>
               <p>We do not invent demand. Only automatic-payout campaigns compete for rank.</p>
+              <Link className="button launch-button" href="/create">List the first bounty →</Link>
             </div>}
       </div>
       <p className="board-rule">Rank is funded demand. Manual listings cannot take #1. A payout enters the ledger only after Stripe confirms the transfer.</p>

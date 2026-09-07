@@ -43,7 +43,7 @@ export default function JoinNetworkForm() {
 
   return <form className="form-card" onSubmit={submit}>
     <div className="two-col">
-      <label>Your name<input name="displayName" required maxLength={80} placeholder="Kevin Ngeno" /></label>
+      <label>Your name<input name="displayName" required maxLength={80} placeholder="Your name" /></label>
       <label>Email<input name="email" required type="email" placeholder="you@email.com" /></label>
     </div>
     <div className="two-col">
@@ -58,7 +58,7 @@ export default function JoinNetworkForm() {
     <label className="inline-check"><input type="checkbox" name="emailAlerts" defaultChecked /> Alert me when a high-fit paid mission enters the network.</label>
 
     {error && <div className="error">{error}</div>}
-    <button className="button primary full" disabled={loading}>{loading ? "Building your mission feed…" : "Join the FirstCustomer Network →"}</button>
+    <button className="button launch-button full" disabled={loading}>{loading ? "Joining…" : "Join the network →"}</button>
     <p className="fineprint">Joining is free. You choose which campaigns to claim. Rewards are earned only on conversions that satisfy the published company criteria.</p>
   </form>;
 }

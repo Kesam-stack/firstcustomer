@@ -43,7 +43,7 @@ export default async function Explore({ searchParams }: { searchParams: Promise<
     <div className="board-list">
       {rows.length
         ? rankFunded(rows).map(({ row, rank }) => <BountyCard bounty={row} rank={sort === "reward" || sort === "recommended" ? rank : undefined} key={row.id} />)
-        : <div className="board-empty"><span>Empty lane</span><strong>No campaigns in this view.</strong><p>Change the filter or list the first bounty.</p></div>}
+        : <div className="board-empty"><span>Empty lane</span><strong>No campaigns in this view.</strong><p>Change the filter or list the first bounty.</p><Link className="button launch-button" href="/create">List a bounty →</Link></div>}
     </div>
   </main>;
 }

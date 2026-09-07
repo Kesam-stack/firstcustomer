@@ -10,10 +10,23 @@ const mono = IBM_Plex_Mono({ weight: ["400", "500"], subsets: ["latin"], variabl
 export const metadata: Metadata = {
   title: "FirstCustomer — Highest funded bounty sits at #1",
   description: "A live board where companies pay for customers, not clicks. Rank is funded automatic-payout demand.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://firstcustomer-production.up.railway.app"),
   openGraph: {
     title: "FirstCustomer",
     description: "Pay for customers. Not clicks. Highest funded bounty sits at #1.",
+    type: "website",
   },
+  twitter: {
+    card: "summary",
+    title: "FirstCustomer",
+    description: "Pay for customers. Not clicks. Highest funded bounty sits at #1.",
+  },
+};
+
+export const viewport = {
+  themeColor: "#f4f1ea",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -34,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {children}
       <footer className="site-footer">
         <div className="shell footer">
-          <div><b>FirstCustomer</b><span>Rank is the reward.</span></div>
+          <div><b>FirstCustomer</b><span>Rank is funded demand.</span></div>
           <div><Link href="/">Board</Link><Link href="/ledger">Ledger</Link><Link href="/network">Earn</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link></div>
         </div>
       </footer>
