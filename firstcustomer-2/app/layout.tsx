@@ -34,7 +34,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <body>
       <header className="site-header">
         <div className="shell nav">
-          <Link href="/" className="wordmark">FirstCustomer</Link>
+          <Link href="/" className="wordmark">
+            <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+              <rect width="32" height="32" fill="#11110f"/>
+              <rect x="13" y="6" width="7" height="16" fill="#f4f1ea"/>
+              <rect x="9" y="6" width="11" height="5" fill="#f4f1ea"/>
+              <rect x="8" y="23" width="16" height="4" fill="#ff4f24"/>
+            </svg>
+            FirstCustomer
+          </Link>
           <nav>
             <Link href="/" className="nav-hide-sm">Board</Link>
             <Link href="/explore" className="nav-hide-sm">Market</Link>

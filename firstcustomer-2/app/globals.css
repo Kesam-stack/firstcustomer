@@ -30,7 +30,8 @@ button,input,textarea,select{font:inherit}
 .page{padding:70px 0 110px}
 .site-header{position:sticky;top:0;z-index:40;border-bottom:1px solid var(--ink);background:rgba(244,241,234,.94);backdrop-filter:blur(10px)}
 .nav{height:58px;display:flex;align-items:center;gap:16px}
-.wordmark{font-weight:700;letter-spacing:-.6px;font-size:16px;font-family:var(--sans);flex:0 0 auto}
+.wordmark{font-weight:700;letter-spacing:-.6px;font-size:16px;font-family:var(--sans);flex:0 0 auto;display:inline-flex;align-items:center;gap:10px}
+.brand-mark{width:22px;height:22px;display:block;flex:0 0 auto}
 .nav nav{display:flex;align-items:center;gap:22px;font-size:13px;font-weight:500;min-width:0;margin-left:auto;margin-right:4px}
 .nav nav>a{padding:7px 0;white-space:nowrap}
 .nav nav>a:hover{opacity:.55}
