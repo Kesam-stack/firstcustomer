@@ -13,10 +13,14 @@ export default async function LedgerPage() {
     <div className="ledger-hero">
       <span className="eyebrow">Public ledger</span>
       <h1>Proof, not testimonials.</h1>
-      <p>Every row below represents a payout recorded as successfully transferred by FirstCustomer. Failed, pending and manual-due rewards are not counted as paid.</p>
+      <p>Every row is a transfer FirstCustomer recorded as paid. Failed, pending and manual-due rewards are not counted.</p>
     </div>
 
-    <div className="ledger-summary big"><div><span>Total paid</span><strong>{money(Number(stats.total_paid_cents))}</strong></div><div><span>Payouts</span><strong>{stats.payout_count}</strong></div><div><span>Companies</span><strong>{stats.companies_paid}</strong></div></div>
+    <div className="ledger-summary big">
+      <div><span>Total paid</span><strong>{money(Number(stats.total_paid_cents))}</strong></div>
+      <div><span>Payouts</span><strong>{stats.payout_count}</strong></div>
+      <div><span>Companies</span><strong>{stats.companies_paid}</strong></div>
+    </div>
 
     <div className="ledger-table full-ledger">
       <div className="ledger-head"><span>Date</span><span>Company</span><span>Referrer</span><span>Amount</span></div>
@@ -25,7 +29,7 @@ export default async function LedgerPage() {
         <Link href={`/b/${payout.slug}`}>{payout.company_name}</Link>
         <span>@{payout.x_handle}{payout.rainmaker && <b className="rainmaker">Rainmaker</b>}</span>
         <strong>{money(payout.reward_cents)}</strong>
-      </div>) : <div className="empty-ledger">The ledger is empty. We will not pre-populate it with examples.</div>}
+      </div>) : <div className="empty-ledger">The tape is empty. The first successful transfer becomes line one. We will not pre-populate it.</div>}
     </div>
   </main>;
 }

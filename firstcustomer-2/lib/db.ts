@@ -1,5 +1,5 @@
 import { Pool, type QueryResultRow } from "pg";
-import type { Bounty, Referral, Conversion, NetworkMember, CampaignMatch } from "@/lib/types";
+import type { Bounty, Referral, Conversion, NetworkMember, CampaignMatch, Rainmaker } from "@/lib/types";
 import { config } from "@/lib/config";
 
 const globalForDb = globalThis as unknown as { pool?: Pool };
@@ -45,18 +45,63 @@ export async function listMarketplaceBounties(limit = 12, category?: string, sor
     where += ` AND category=$${values.length}`;
   }
   values.push(limit);
-  const r = await query<Bounty>(`SELECT ${bountySelect} FROM bounties WHERE ${where} ORDER BY ${order} LIMIT $${values.length}`, values);
+  const r = await query<Bounty>(
+    `SELECT ${bountySelect},
+            COALESCE((SELECT SUM(clicks)::int FROM referrals WHERE bounty_id=bounties.id),0) click_count,
+            COALESCE((SELECT COUNT(*)::int FROM referrals WHERE bounty_id=bounties.id),0) referrer_count
+       FROM bounties WHERE ${where} ORDER BY ${order} LIMIT $${values.length}`,
+    values,
+  );
   return r.rows;
 }
 
 export async function marketplaceStats() {
-  const r = await query<{ campaigns: number; open_reward_cents: string; network_members: number }>(
+  const r = await query<{ campaigns: number; open_reward_cents: string; network_members: number; highest_reward_cents: string; click_count: number }>(
     `SELECT
        (SELECT COUNT(*)::int FROM bounties WHERE status='active' AND approved_count<goal_count) campaigns,
        (SELECT COALESCE(SUM((goal_count-approved_count)*reward_cents),0)::text FROM bounties WHERE status='active' AND approved_count<goal_count) open_reward_cents,
-       (SELECT COUNT(*)::int FROM network_members WHERE status='active') network_members`,
+       (SELECT COUNT(*)::int FROM network_members WHERE status='active') network_members,
+       (SELECT COALESCE(MAX(reward_cents),0)::text FROM bounties WHERE status='active' AND approved_count<goal_count) highest_reward_cents,
+       (SELECT COALESCE(SUM(r.clicks),0)::int FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE b.status='active' AND b.approved_count<b.goal_count) click_count`,
   );
-  return r.rows[0] ?? { campaigns: 0, open_reward_cents: "0", network_members: 0 };
+  return r.rows[0] ?? { campaigns: 0, open_reward_cents: "0", network_members: 0, highest_reward_cents: "0", click_count: 0 };
+}
+
+export async function getBountyRank(bounty: Bounty): Promise<number | null> {
+  if (bounty.status !== "active" || bounty.approved_count >= bounty.goal_count) return null;
+  const r = await query<{ rank: number }>(
+    `SELECT COUNT(*)::int + 1 AS rank FROM bounties
+      WHERE status='active' AND approved_count < goal_count
+        AND (reward_cents > $1
+          OR (reward_cents = $1 AND created_at < $2)
+          OR (reward_cents = $1 AND created_at = $2 AND id < $3))`,
+    [bounty.reward_cents, bounty.created_at, bounty.id],
+  );
+  return r.rows[0]?.rank ?? null;
+}
+
+export async function bountyTraffic(bountyId: string) {
+  const r = await query<{ click_count: number; referrer_count: number }>(
+    `SELECT COALESCE(SUM(clicks),0)::int click_count, COUNT(*)::int referrer_count FROM referrals WHERE bounty_id=$1`,
+    [bountyId],
+  );
+  return r.rows[0] ?? { click_count: 0, referrer_count: 0 };
+}
+
+export async function listRainmakers(limit = 8): Promise<Rainmaker[]> {
+  const r = await query<Rainmaker>(
+    `SELECT MIN(x_handle) x_handle,
+            SUM(approved_conversions)::int approved,
+            SUM(paid_cents)::int paid_cents,
+            SUM(earned_cents)::int earned_cents
+       FROM referrals
+      GROUP BY lower(x_handle)
+     HAVING SUM(approved_conversions) >= $1
+      ORDER BY SUM(paid_cents) DESC, SUM(approved_conversions) DESC
+      LIMIT $2`,
+    [config.rainmakerThreshold, limit],
+  );
+  return r.rows;
 }
 
 export type PublicPayout = {

@@ -8,14 +8,14 @@ export default async function Create({ searchParams }: { searchParams: Promise<{
 
   return <main className="shell page create-page">
     <div className="create-intro">
-      <span className="eyebrow">Launch</span>
+      <span className="eyebrow">List</span>
       <h1>Put a price on a customer.</h1>
-      <p>The campaign is distributed inside FirstCustomer after payment. Posting it elsewhere is optional.</p>
+      <p>Highest bounty sits at #1. Write the acceptance test first.</p>
       <div className="create-rail">
         <div><span>01</span><strong>Company</strong><small>What you sell</small></div>
         <div><span>02</span><strong>Outcome</strong><small>What qualifies</small></div>
         <div><span>03</span><strong>Economics</strong><small>Reward + target</small></div>
-        <div><span>04</span><strong>Launch</strong><small>Payment + distribution</small></div>
+        <div><span>04</span><strong>List</strong><small>Pay $9 · take a rank</small></div>
       </div>
     </div>
     <CreateBountyForm

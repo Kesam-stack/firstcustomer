@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listMarketplaceBounties, marketplaceStats, listPublicPayouts, publicLedgerStats } from "@/lib/db";
+import { listMarketplaceBounties, marketplaceStats, listPublicPayouts, publicLedgerStats, listRainmakers } from "@/lib/db";
 import BountyCard from "@/components/BountyCard";
 import QuickLaunch from "@/components/QuickLaunch";
 import { money } from "@/lib/format";
@@ -7,70 +7,91 @@ import { config } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
+const emptyStats = { campaigns: 0, open_reward_cents: "0", network_members: 0, highest_reward_cents: "0", click_count: 0 };
+const emptyLedger = { total_paid_cents: "0", payout_count: 0, companies_paid: 0 };
+
 export default async function Home() {
   let bounties = [] as Awaited<ReturnType<typeof listMarketplaceBounties>>;
   let payouts = [] as Awaited<ReturnType<typeof listPublicPayouts>>;
-  let stats = { campaigns: 0, open_reward_cents: "0", network_members: 0 };
-  let ledger = { total_paid_cents: "0", payout_count: 0, companies_paid: 0 };
+  let rainmakers = [] as Awaited<ReturnType<typeof listRainmakers>>;
+  let stats = emptyStats;
+  let ledger = emptyLedger;
 
   try {
-    [bounties, payouts, stats, ledger] = await Promise.all([
-      listMarketplaceBounties(5),
+    [bounties, payouts, rainmakers, stats, ledger] = await Promise.all([
+      listMarketplaceBounties(12, "All", "reward"),
       listPublicPayouts(6),
+      listRainmakers(6),
       marketplaceStats(),
       publicLedgerStats(),
     ]);
   } catch {}
 
+  const takeFirst = Number(stats.highest_reward_cents) > 0
+    ? money(Number(stats.highest_reward_cents))
+    : "yours";
+
   return <main>
-    <section className="hero shell">
-      <div className="hero-copy">
-        <div className="eyebrow">Customer acquisition market</div>
-        <h1>Pay for customers.<br/>Not clicks.</h1>
-        <p>Set the outcome and the price. FirstCustomer puts the offer in front of people who can deliver it, tracks attribution, and records the payout.</p>
-        <div className="hero-links"><Link href="/explore">Browse the market ↗</Link><Link href="/ledger">See every payout ↗</Link></div>
-      </div>
+    <section className="board-top shell">
+      <p className="board-kicker">Highest bounty sits at #1</p>
+      <h1>Pay for customers.<br />Not clicks.</h1>
+      <p className="board-sub">Companies price a customer. People deliver it.</p>
       <QuickLaunch minimumRewardDollars={config.minimumRewardCents / 100} />
     </section>
 
-    <section className="ticker">
+    <section className="board-meta">
       <div className="shell ticker-inner">
-        <div><span>Open reward pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
-        <div><span>Live campaigns</span><strong>{stats.campaigns}</strong></div>
-        <div><span>Network members</span><strong>{stats.network_members}</strong></div>
+        <div><span>Open pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
+        <div><span>Live listings</span><strong>{stats.campaigns}</strong></div>
+        <div><span>Take #1</span><strong>{takeFirst}</strong></div>
         <div><span>Paid through ledger</span><strong>{money(Number(ledger.total_paid_cents))}</strong></div>
       </div>
     </section>
 
-    <section className="market-section shell">
-      <div className="section-bar"><div><span>01</span><h2>Live market</h2></div><Link href="/explore">View all campaigns</Link></div>
-      <div className="market-header"><span>Company</span><span>Mission</span><span>Reward</span><span>Remaining</span><span>Status</span><span></span></div>
-      <div className="market-list">
-        {bounties.length ? bounties.map((bounty) => <BountyCard bounty={bounty} key={bounty.id} />) : <div className="empty-state"><strong>No campaigns are live yet.</strong><span>The first paid campaign will appear here automatically. We do not invent demand.</span></div>}
+    <section className="board-section shell">
+      <div className="section-bar">
+        <div><span>Board</span><h2>Live demand</h2></div>
+        <Link href="/explore">Full market</Link>
       </div>
+      <div className="board-head">
+        <span>#</span><span>Company</span><span>Customer</span><span>Reward</span><span>Pool</span><span>Left</span><span>Clicks</span><span>Status</span>
+      </div>
+      <div className="board-list">
+        {bounties.length
+          ? bounties.map((bounty, index) => <BountyCard bounty={bounty} rank={index + 1} key={bounty.id} />)
+          : <div className="board-empty">
+              <span>The board is open</span>
+              <strong>First listing takes #1.</strong>
+              <p>We do not invent demand. The first paid campaign becomes the top of the market automatically.</p>
+            </div>}
+      </div>
+      <p className="board-rule">Rank is the reward. Highest paying campaign sits at #1. A payout enters the ledger only after settlement succeeds.</p>
     </section>
 
-    <section className="ledger-section shell">
-      <div className="section-bar"><div><span>02</span><h2>Public payout ledger</h2></div><Link href="/ledger">Open ledger</Link></div>
-      <div className="ledger-summary"><div><span>Total paid</span><strong>{money(Number(ledger.total_paid_cents))}</strong></div><div><span>Successful payouts</span><strong>{ledger.payout_count}</strong></div><div><span>Companies paid</span><strong>{ledger.companies_paid}</strong></div></div>
-      <div className="ledger-table">
-        <div className="ledger-head"><span>Time</span><span>Company</span><span>Referrer</span><span>Amount</span></div>
-        {payouts.length ? payouts.map((payout, index) => <div className="ledger-row" key={`${payout.paid_at}-${index}`}>
-          <span>{new Date(payout.paid_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-          <Link href={`/b/${payout.slug}`}>{payout.company_name}</Link>
-          <span>@{payout.x_handle}{payout.rainmaker && <b className="rainmaker">Rainmaker</b>}</span>
-          <strong>{money(payout.reward_cents)}</strong>
-        </div>) : <div className="empty-ledger">No payout has been recorded yet. The first successful transfer becomes the first line of the ledger.</div>}
+    <section className="split-boards shell">
+      <div>
+        <div className="section-bar"><div><span>Tape</span><h2>Public ledger</h2></div><Link href="/ledger">Open ledger</Link></div>
+        <div className="ledger-table">
+          <div className="ledger-head"><span>Time</span><span>Company</span><span>Referrer</span><span>Amount</span></div>
+          {payouts.length ? payouts.map((payout, index) => <div className="ledger-row" key={`${payout.paid_at}-${index}`}>
+            <span>{new Date(payout.paid_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+            <Link href={`/b/${payout.slug}`}>{payout.company_name}</Link>
+            <span>@{payout.x_handle}{payout.rainmaker && <b className="rainmaker">Rainmaker</b>}</span>
+            <strong>{money(payout.reward_cents)}</strong>
+          </div>) : <div className="empty-ledger">Awaiting first settlement. No fake transactions.</div>}
+        </div>
       </div>
-    </section>
-
-    <section className="mechanism shell">
-      <div className="section-bar"><div><span>03</span><h2>The mechanism</h2></div></div>
-      <div className="mechanism-grid">
-        <article><span>Company</span><h3>Price the outcome</h3><p>Define exactly what counts as a customer and what one verified conversion is worth.</p></article>
-        <article><span>FirstCustomer</span><h3>Route the offer</h3><p>The campaign enters the market and is matched to relevant people. The founder does not have to post it.</p></article>
-        <article><span>Referrer</span><h3>Claim distribution</h3><p>Get a tracked link, send qualified traffic, and see clicks, approvals and earnings.</p></article>
-        <article><span>Settlement</span><h3>Make trust visible</h3><p>Successful payouts enter the public ledger. No fake counters, no anonymous “social proof.”</p></article>
+      <div>
+        <div className="section-bar"><div><span>People</span><h2>Rainmakers</h2></div><Link href="/network">Earn</Link></div>
+        <div className="ledger-table">
+          <div className="ledger-head rainmaker-head"><span>#</span><span>Handle</span><span>Customers</span><span>Paid</span></div>
+          {rainmakers.length ? rainmakers.map((person, index) => <div className="ledger-row rainmaker-row" key={person.x_handle}>
+            <span className={index === 0 ? "board-rank top" : "board-rank"}>{String(index + 1).padStart(2, "0")}</span>
+            <span>@{person.x_handle}</span>
+            <span>{person.approved}</span>
+            <strong>{money(person.paid_cents)}</strong>
+          </div>) : <div className="empty-ledger">Rainmakers appear after {config.rainmakerThreshold} approved customers. Reputation is earned, not assigned.</div>}
+        </div>
       </div>
     </section>
   </main>;

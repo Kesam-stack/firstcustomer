@@ -28,6 +28,15 @@ export type Bounty = {
   status: BountyStatus;
   created_at: string;
   activated_at: string | null;
+  click_count?: number;
+  referrer_count?: number;
+};
+
+export type Rainmaker = {
+  x_handle: string;
+  approved: number;
+  paid_cents: number;
+  earned_cents: number;
 };
 
 export type Referral = {

@@ -9,3 +9,15 @@ export function money(cents: number) {
 export function cleanHandle(value: string) {
   return value.trim().replace(/^@+/, "").replace(/[^a-zA-Z0-9_]/g, "").slice(0, 30);
 }
+
+export function remaining(goal: number, approved: number) {
+  return Math.max(0, goal - approved);
+}
+
+export function poolCents(rewardCents: number, goal: number, approved: number) {
+  return remaining(goal, approved) * rewardCents;
+}
+
+export function tweetIntent(text: string) {
+  return `https://x.com/intent/post?text=${encodeURIComponent(text)}`;
+}

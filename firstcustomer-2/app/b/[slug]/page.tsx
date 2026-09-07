@@ -1,2 +1,71 @@
-import {notFound} from "next/navigation";import {getBountyBySlug} from "@/lib/db";import {money} from "@/lib/format";import ReferralBox from "@/components/ReferralBox";export const dynamic="force-dynamic";
-export default async function Page({params,searchParams}:{params:Promise<{slug:string}>,searchParams:Promise<{ref?:string}>}){const{slug}=await params,{ref}=await searchParams;const b=await getBountyBySlug(slug);if(!b||b.status==="draft")notFound();const pct=Math.min(100,Math.round(b.approved_count/b.goal_count*100));return <main className="narrow page-pad"><div className="bounty-card public-card"><div className="bounty-topbar"><span className="live-dot"/><b>{b.status.toUpperCase()}</b><span>{b.category}</span>{b.payment_verified&&<span className="verified-badge">Payment verified</span>}</div><div className="campaign-company"><div className="company-mark">{b.company_logo_url?<img src={b.company_logo_url} alt=""/>:b.company_name[0]}</div><div><strong>{b.company_name}</strong><span>{new URL(b.product_url).hostname}</span></div></div><h1>{b.headline}</h1><p className="bounty-action">{b.desired_action}</p><div className="reward-grid"><div><span>Reward</span><strong>{money(b.reward_cents)}</strong></div><div><span>Approved</span><strong>{b.approved_count}</strong></div><div><span>Goal</span><strong>{b.goal_count}</strong></div><div><span>Payout</span><strong>{b.payout_mode==="stripe"?"Auto":"Manual"}</strong></div></div><div className="progress"><div style={{width:`${pct}%`}}/></div><div className="summary-box"><span>Company</span><p>{b.company_description}</p><span>Reward terms</span><p>{b.referral_terms}</p></div>{ref?<a className="button dark full" href={`/r/${encodeURIComponent(ref)}`}>Continue to {b.company_name} →</a>:b.status==="active"?<ReferralBox slug={b.slug} companyName={b.company_name} payoutMode={b.payout_mode}/>:<div className="notice">This campaign is no longer accepting referrals.</div>}<p className="fineprint center">FirstCustomer tracks attribution and payout state. Eligibility remains subject to the published campaign criteria.</p></div></main>}
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { getBountyBySlug, getBountyRank, bountyTraffic } from "@/lib/db";
+import { money, poolCents, remaining, tweetIntent } from "@/lib/format";
+import ReferralBox from "@/components/ReferralBox";
+import { config } from "@/lib/config";
+
+export const dynamic = "force-dynamic";
+
+export default async function Page({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ ref?: string }> }) {
+  const { slug } = await params;
+  const { ref } = await searchParams;
+  const bounty = await getBountyBySlug(slug);
+  if (!bounty || bounty.status === "draft") notFound();
+
+  const [rank, traffic] = await Promise.all([getBountyRank(bounty), bountyTraffic(bounty.id)]);
+  const left = remaining(bounty.goal_count, bounty.approved_count);
+  const pool = poolCents(bounty.reward_cents, bounty.goal_count, bounty.approved_count);
+  const pct = Math.min(100, Math.round((bounty.approved_count / bounty.goal_count) * 100));
+  const host = new URL(bounty.product_url).hostname;
+  const share = tweetIntent(`${bounty.company_name} is paying ${money(bounty.reward_cents)} per verified customer on FirstCustomer. ${config.appUrl}/b/${bounty.slug}`);
+
+  return <main className="narrow page-pad">
+    <div className="listing">
+      <div className="bounty-topbar">
+        <span className="live-dot" />
+        <b>{rank ? `#${rank} on the board` : bounty.status.toUpperCase()}</b>
+        <span>{bounty.category}</span>
+        {bounty.payment_verified && <span className="verified-badge">Payment verified</span>}
+      </div>
+
+      <div className="campaign-company">
+        <div className="company-mark">{bounty.company_logo_url ? <img src={bounty.company_logo_url} alt="" /> : bounty.company_name[0]}</div>
+        <div><strong>{bounty.company_name}</strong><span>{host}</span></div>
+      </div>
+
+      <h1>{bounty.headline}</h1>
+      <p className="bounty-action">{bounty.desired_action}</p>
+
+      <div className="listing-money">
+        <div><span>Per customer</span><strong>{money(bounty.reward_cents)}</strong></div>
+        <div><span>Still on the table</span><strong>{money(pool)}</strong></div>
+        <div><span>Remaining</span><strong>{left}</strong></div>
+        <div><span>Clicks</span><strong>{traffic.click_count}</strong></div>
+      </div>
+      <div className="progress"><div style={{ width: `${pct}%` }} /></div>
+      <p className="listing-meta">{traffic.referrer_count} referrer{traffic.referrer_count === 1 ? "" : "s"} · {bounty.payout_mode === "stripe" ? "Automatic payout" : "Manual payout"} · {bounty.approved_count}/{bounty.goal_count} approved</p>
+
+      <div className="summary-box">
+        <span>Company</span>
+        <p>{bounty.company_description}</p>
+        <span>What qualifies</span>
+        <p>{bounty.desired_action}</p>
+        <span>Reward terms</span>
+        <p>{bounty.referral_terms}</p>
+      </div>
+
+      {ref
+        ? <a className="button dark full" href={`/r/${encodeURIComponent(ref)}`}>Continue to {bounty.company_name} →</a>
+        : bounty.status === "active"
+          ? <ReferralBox slug={bounty.slug} companyName={bounty.company_name} payoutMode={bounty.payout_mode} />
+          : <div className="notice">This campaign is no longer accepting referrals.</div>}
+
+      <div className="two-actions listing-share">
+        <a className="button secondary" href={share} target="_blank" rel="noreferrer">Share this bounty on X</a>
+        <Link className="button secondary" href="/">Back to the board</Link>
+      </div>
+      <p className="fineprint center">FirstCustomer tracks attribution and payout state. Eligibility remains subject to the published campaign criteria.</p>
+    </div>
+  </main>;
+}
