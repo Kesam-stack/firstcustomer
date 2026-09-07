@@ -3,6 +3,8 @@ import { listMarketplaceBounties, marketplaceStats, listPublicPayouts, publicLed
 import BountyCard from "@/components/BountyCard";
 import QuickLaunch from "@/components/QuickLaunch";
 import { money } from "@/lib/format";
+import LedgerRow from "@/components/LedgerRow";
+import CountUp from "@/components/CountUp";
 import { config } from "@/lib/config";
 import { rankFunded } from "@/lib/market";
 
@@ -49,7 +51,7 @@ export default async function Home() {
         <div><span>Funded pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
         <div><span>Live listings</span><strong>{stats.campaigns}</strong></div>
         <div><span>Take #1</span><strong>{takeFirst}</strong></div>
-        <div><span>Paid through ledger</span><strong>{money(Number(ledger.total_paid_cents))}</strong></div>
+        <div><span>Paid through ledger</span><strong><CountUp cents={Number(ledger.total_paid_cents)} /></strong></div>
       </div>
     </section>
 
@@ -77,14 +79,10 @@ export default async function Home() {
     <section className="split-boards shell">
       <div>
         <div className="section-bar"><div><span>Tape</span><h2>Public ledger</h2></div><Link href="/ledger">Open ledger</Link></div>
-        <div className="ledger-table">
-          <div className="ledger-head"><span>Time</span><span>Company</span><span>Referrer</span><span>Amount</span></div>
-          {payouts.length ? payouts.map((payout, index) => <div className="ledger-row" key={`${payout.paid_at}-${index}`}>
-            <span>{new Date(payout.paid_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-            <Link href={`/b/${payout.slug}`}>{payout.company_name}</Link>
-            <span>@{payout.x_handle}{payout.rainmaker && <b className="rainmaker">Rainmaker</b>}</span>
-            <strong>{money(payout.reward_cents)}</strong>
-          </div>) : <div className="empty-ledger">Awaiting first settlement. No fake transactions.</div>}
+        <div className="proof-table compact">
+          {payouts.length
+            ? payouts.map((payout, index) => <LedgerRow compact payout={payout} key={`${payout.paid_at}-${index}`} />)
+            : <div className="empty-ledger">Awaiting first settlement. No fake transactions.</div>}
         </div>
       </div>
       <div>

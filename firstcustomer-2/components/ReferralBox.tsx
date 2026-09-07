@@ -49,6 +49,7 @@ export default function ReferralBox({ slug, companyName, payoutMode }: { slug: s
       <label>X handle<input name="xHandle" required placeholder="@yourhandle" /></label>
       <label>Email<input name="contactEmail" required type="email" placeholder="you@email.com" /></label>
     </div>
+    <label>X post URL <span>optional — shown on the public ledger after payout</span><input name="sourcePostUrl" placeholder="https://x.com/you/status/123" /></label>
     {error && <div className="error">{error}</div>}
     <button className="button launch-button full" disabled={loading}>{loading ? "Creating…" : "Get referral link →"}</button>
   </form>;

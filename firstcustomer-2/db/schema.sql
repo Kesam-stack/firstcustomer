@@ -43,6 +43,7 @@ ALTER TABLE bounties ADD COLUMN IF NOT EXISTS payment_verified BOOLEAN NOT NULL 
 ALTER TABLE bounties ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE bounties ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE bounties ADD COLUMN IF NOT EXISTS stripe_payment_method_id TEXT;
+ALTER TABLE bounties ADD COLUMN IF NOT EXISTS creator_x_handle TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_bounties_slug ON bounties(slug);
 CREATE INDEX IF NOT EXISTS idx_bounties_status ON bounties(status);
@@ -69,6 +70,7 @@ ALTER TABLE referrals ADD COLUMN IF NOT EXISTS stripe_account_id TEXT;
 ALTER TABLE referrals ADD COLUMN IF NOT EXISTS payouts_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE referrals ADD COLUMN IF NOT EXISTS earned_cents INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE referrals ADD COLUMN IF NOT EXISTS paid_cents INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE referrals ADD COLUMN IF NOT EXISTS source_post_url TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_referrals_bounty ON referrals(bounty_id);
 CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(code);

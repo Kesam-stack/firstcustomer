@@ -5,6 +5,7 @@ import { referralCode } from "@/lib/slug";
 import { randomToken, hashToken } from "@/lib/security";
 import { limitOrThrow } from "@/lib/rateLimit";
 import { publicOrigin } from "@/lib/origin";
+import { optionalXPostUrl } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
@@ -19,9 +20,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     const email = String(body.contactEmail || "").trim().toLowerCase();
     if (!handle) return NextResponse.json({ error: "Enter a valid X handle." }, { status: 400 });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
-    if (email === bounty.creator_email.toLowerCase()) {
+    if (email === bounty.creator_email.toLowerCase() || (bounty.creator_x_handle && handle.toLowerCase() === bounty.creator_x_handle.toLowerCase())) {
       return NextResponse.json({ error: "You cannot refer customers to your own campaign." }, { status: 400 });
     }
+    const sourcePostUrl = optionalXPostUrl(body.sourcePostUrl);
 
     const existing = await query<{ code: string }>(
       "SELECT code FROM referrals WHERE bounty_id=$1 AND lower(x_handle)=lower($2) LIMIT 1",
@@ -36,8 +38,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     for (let i = 0; i < 5; i++) {
       try {
         const inserted = await query<{ code: string }>(
-          "INSERT INTO referrals(bounty_id,code,manage_secret_hash,x_handle,contact_email) VALUES($1,$2,$3,$4,$5) RETURNING code",
-          [bounty.id, referralCode(), hashToken(manageKey), handle, email],
+          "INSERT INTO referrals(bounty_id,code,manage_secret_hash,x_handle,contact_email,source_post_url) VALUES($1,$2,$3,$4,$5,$6) RETURNING code",
+          [bounty.id, referralCode(), hashToken(manageKey), handle, email, sourcePostUrl],
         );
         code = inserted.rows[0].code;
         break;

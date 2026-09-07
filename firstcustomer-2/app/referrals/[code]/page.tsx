@@ -3,6 +3,7 @@ import Link from "next/link";
 import {getReferralByCode,query} from "@/lib/db";
 import {hashToken,safeEqualHex} from "@/lib/security";
 import {money} from "@/lib/format";
+import SourcePostForm from "@/components/SourcePostForm";
 import {config} from "@/lib/config";
 
 export const dynamic="force-dynamic";
@@ -47,6 +48,7 @@ export default async function Page({params,searchParams}:{params:Promise<{code:s
       :<div className="warning">This campaign uses manual payouts. The company is responsible for paying approved rewards.</div>}
     {r.payout_mode==="stripe"&&!r.payouts_enabled&&<form action={"/api/referrals/"+encodeURIComponent(code)+"/payouts?key="+encodeURIComponent(key)} method="post"><button className="button launch-button full">Set up Stripe payouts →</button></form>}
     <div className="share-strip" style={{marginTop:18}}><span>Referral code</span><code>{r.code}</code></div>
+    <SourcePostForm code={code} secret={key} current={r.source_post_url || null} />
     {r.paid_cents>0&&<div className="two-actions" style={{marginTop:14}}><Link className="button secondary" href="/ledger">View proof on ledger</Link><a className="button secondary" target="_blank" rel="noreferrer" href={"https://x.com/intent/post?text="+shareText}>Share payout on X</a></div>}
     <p className="fineprint">Keep this dashboard URL private. It controls payout onboarding for this referral.</p>
   </main>;

@@ -4,6 +4,7 @@ import { randomToken, hashToken } from "@/lib/security";
 import { slugify } from "@/lib/slug";
 import { stripe } from "@/lib/stripe";
 import { requireEmail, requireHttpUrl, requireInt, requireString } from "@/lib/validation";
+import { cleanHandle } from "@/lib/format";
 import { config } from "@/lib/config";
 import { limitOrThrow } from "@/lib/rateLimit";
 import { publicOrigin } from "@/lib/origin";
@@ -29,15 +30,17 @@ export async function POST(req: Request) {
     }
     let logo: string | null = null;
     if (typeof body.companyLogoUrl === "string" && body.companyLogoUrl.trim()) logo = requireHttpUrl(body.companyLogoUrl);
+    const creatorXHandle = cleanHandle(String(body.creatorXHandle || ""));
+    if (!creatorXHandle) throw new Error("Enter your X handle so the ledger can show who paid.");
     const payoutMode = body.payoutMode === "manual" ? "manual" : "stripe";
     const ownerKey = randomToken(24);
     const integrationKey = `fc_live_${randomToken(24)}`;
     const slug = slugify(companyName);
 
     const inserted = await query<{ id: string }>(
-      `INSERT INTO bounties(slug,owner_secret_hash,integration_secret_hash,integration_secret_prefix,creator_email,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,payout_mode,launch_fee_cents,platform_fee_bps,network_distribution)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,TRUE) RETURNING id`,
-      [slug, hashToken(ownerKey), hashToken(integrationKey), integrationKey.slice(0, 12), creatorEmail, companyName, productUrl, companyDescription, category, logo, headline, desiredAction, referralTerms, rewardDollars * 100, goalCount, payoutMode, config.launchFeeCents, config.platformFeeBps],
+      `INSERT INTO bounties(slug,owner_secret_hash,integration_secret_hash,integration_secret_prefix,creator_email,creator_x_handle,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,payout_mode,launch_fee_cents,platform_fee_bps,network_distribution)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,TRUE) RETURNING id`,
+      [slug, hashToken(ownerKey), hashToken(integrationKey), integrationKey.slice(0, 12), creatorEmail, creatorXHandle, companyName, productUrl, companyDescription, category, logo, headline, desiredAction, referralTerms, rewardDollars * 100, goalCount, payoutMode, config.launchFeeCents, config.platformFeeBps],
     );
     const id = inserted.rows[0].id;
     const origin = publicOrigin(req);

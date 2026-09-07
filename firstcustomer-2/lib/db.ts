@@ -34,7 +34,7 @@ export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>)
   }
 }
 
-export const bountySelect = `id,slug,creator_email,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,approved_count,launch_fee_cents,platform_fee_bps,payout_mode,payment_verified,is_featured,network_distribution,network_matched_count,last_network_match_at::text,status,created_at::text,activated_at::text`;
+export const bountySelect = `id,slug,creator_email,creator_x_handle,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,approved_count,launch_fee_cents,platform_fee_bps,payout_mode,payment_verified,is_featured,network_distribution,network_matched_count,last_network_match_at::text,status,created_at::text,activated_at::text`;
 
 export async function getBountyBySlug(slug: string): Promise<Bounty | null> {
   const r = await query<Bounty>(`SELECT ${bountySelect} FROM bounties WHERE slug=$1 LIMIT 1`, [slug]);
@@ -129,18 +129,30 @@ export type PublicPayout = {
   reward_cents: number;
   company_name: string;
   slug: string;
+  headline: string;
+  creator_x_handle: string | null;
   x_handle: string;
+  source_post_url: string | null;
   total_approved: number;
   rainmaker: boolean;
 };
 
-export async function listPublicPayouts(limit = 12): Promise<PublicPayout[]> {
+export async function listPublicPayouts(limit = 12, q?: string): Promise<PublicPayout[]> {
+  const values: unknown[] = [limit, config.rainmakerThreshold];
+  let search = "";
+  if (q) {
+    values.push(`%${q}%`);
+    search = ` AND (b.company_name ILIKE $3 OR b.headline ILIKE $3 OR r.x_handle ILIKE $3 OR COALESCE(b.creator_x_handle,'') ILIKE $3)`;
+  }
   const r = await query<PublicPayout>(
     `SELECT c.paid_at::text,
             c.reward_cents,
             b.company_name,
             b.slug,
+            b.headline,
+            b.creator_x_handle,
             r.x_handle,
+            r.source_post_url,
             COALESCE((
               SELECT SUM(r2.approved_conversions)::int
               FROM referrals r2
@@ -154,10 +166,10 @@ export async function listPublicPayouts(limit = 12): Promise<PublicPayout[]> {
        FROM conversion_claims c
        JOIN bounties b ON b.id=c.bounty_id
        JOIN referrals r ON r.id=c.referral_id
-      WHERE c.payout_status='paid' AND c.paid_at IS NOT NULL
+      WHERE c.payout_status='paid' AND c.paid_at IS NOT NULL${search}
       ORDER BY c.paid_at DESC
       LIMIT $1`,
-    [limit, config.rainmakerThreshold],
+    values,
   );
   return r.rows;
 }
@@ -175,7 +187,7 @@ export async function publicLedgerStats() {
 }
 
 export async function listReferrals(bountyId: string): Promise<Referral[]> {
-  const r = await query<Referral>(`SELECT id,bounty_id,code,x_handle,contact_email,clicks,approved_conversions,earned_cents,paid_cents,stripe_account_id,payouts_enabled,created_at::text FROM referrals WHERE bounty_id=$1 ORDER BY approved_conversions DESC,clicks DESC,created_at ASC`, [bountyId]);
+  const r = await query<Referral>(`SELECT id,bounty_id,code,x_handle,source_post_url,contact_email,clicks,approved_conversions,earned_cents,paid_cents,stripe_account_id,payouts_enabled,created_at::text FROM referrals WHERE bounty_id=$1 ORDER BY approved_conversions DESC,clicks DESC,created_at ASC`, [bountyId]);
   return r.rows;
 }
 
@@ -185,7 +197,7 @@ export async function listConversions(bountyId: string): Promise<Conversion[]> {
 }
 
 export async function getReferralByCode(code: string): Promise<(Referral & { company_name: string; bounty_slug: string; headline: string; reward_cents: number; payout_mode: string; global_approved: number }) | null> {
-  const r = await query<any>(`SELECT r.id,r.bounty_id,r.code,r.x_handle,r.contact_email,r.clicks,r.approved_conversions,r.earned_cents,r.paid_cents,r.stripe_account_id,r.payouts_enabled,r.created_at::text,b.company_name,b.slug bounty_slug,b.headline,b.reward_cents,b.payout_mode,COALESCE((SELECT SUM(r2.approved_conversions)::int FROM referrals r2 WHERE lower(r2.x_handle)=lower(r.x_handle)),0) global_approved FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE r.code=$1 LIMIT 1`, [code]);
+  const r = await query<any>(`SELECT r.id,r.bounty_id,r.code,r.x_handle,r.source_post_url,r.contact_email,r.clicks,r.approved_conversions,r.earned_cents,r.paid_cents,r.stripe_account_id,r.payouts_enabled,r.created_at::text,b.company_name,b.slug bounty_slug,b.headline,b.reward_cents,b.payout_mode,COALESCE((SELECT SUM(r2.approved_conversions)::int FROM referrals r2 WHERE lower(r2.x_handle)=lower(r.x_handle)),0) global_approved FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE r.code=$1 LIMIT 1`, [code]);
   return r.rows[0] ?? null;
 }
 
@@ -298,7 +310,7 @@ export type AdminReferral = Referral & { company_name: string; slug: string };
 
 export async function adminListReferrals() {
   const r = await query<AdminReferral>(
-    `SELECT r.id,r.bounty_id,r.code,r.x_handle,r.contact_email,r.clicks,r.approved_conversions,r.earned_cents,r.paid_cents,
+    `SELECT r.id,r.bounty_id,r.code,r.x_handle,r.source_post_url,r.contact_email,r.clicks,r.approved_conversions,r.earned_cents,r.paid_cents,
             r.stripe_account_id,r.payouts_enabled,r.created_at::text,b.company_name,b.slug
        FROM referrals r
        JOIN bounties b ON b.id=r.bounty_id

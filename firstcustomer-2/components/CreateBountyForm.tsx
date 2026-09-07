@@ -60,7 +60,8 @@ export default function CreateBountyForm({
       </div>
       <label>Product URL<input name="productUrl" required defaultValue={initialProductUrl} placeholder="https://acme.com" /></label>
       <label>Company description<textarea name="companyDescription" required maxLength={280} rows={3} placeholder="What do you sell, and to whom?" /></label>
-      <div className="two-col"><label>Work email<input name="creatorEmail" required type="email" placeholder="you@company.com" /></label><label>Logo URL <span>optional</span><input name="companyLogoUrl" placeholder="https://acme.com/logo.png" /></label></div>
+      <div className="two-col"><label>Work email<input name="creatorEmail" required type="email" placeholder="you@company.com" /></label><label>Your X handle<input name="creatorXHandle" required placeholder="@you" /></label></div>
+      <label>Logo URL <span>optional</span><input name="companyLogoUrl" placeholder="https://acme.com/logo.png" /></label>
     </section>
 
     <section>

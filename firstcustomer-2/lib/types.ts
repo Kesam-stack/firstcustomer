@@ -6,6 +6,7 @@ export type Bounty = {
   id: string;
   slug: string;
   creator_email: string;
+  creator_x_handle: string | null;
   company_name: string;
   product_url: string;
   company_description: string | null;
@@ -44,6 +45,7 @@ export type Referral = {
   bounty_id: string;
   code: string;
   x_handle: string;
+  source_post_url: string | null;
   contact_email: string | null;
   clicks: number;
   approved_conversions: number;
