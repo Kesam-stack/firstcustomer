@@ -6,7 +6,8 @@ FirstCustomer is a performance-based customer acquisition marketplace. Companies
 
 - $9 campaign launch fee.
 - Automatic-payout campaigns: 10% platform success fee on approved conversions, charged in addition to the advertised referral reward.
-- Future optional placement/featured-campaign revenue can be added without changing the core acquisition loop.
+- Only automatic-payout campaigns compete for #1. Manual listings can appear but cannot rank.
+- Default caps: $5,000 per customer, 100 customers, $25,000 advertised pool (`FC_MAX_REWARD_CENTS`, `FC_MAX_GOAL`, `FC_MAX_POOL_CENTS`).
 
 ## Production architecture
 
@@ -69,9 +70,10 @@ Endpoint:
 
 `POST /api/stripe/webhook`
 
-Required event:
+Required events:
 
 - `checkout.session.completed`
+- `account.updated`
 
 ## Safety / trust boundaries
 

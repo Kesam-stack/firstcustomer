@@ -5,11 +5,13 @@ import { slugify } from "@/lib/slug";
 import { stripe } from "@/lib/stripe";
 import { requireEmail, requireHttpUrl, requireInt, requireString } from "@/lib/validation";
 import { config } from "@/lib/config";
+import { limitOrThrow } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    limitOrThrow(req, "create", 8);
     const body = await req.json();
     const companyName = requireString(body.companyName, "Company", 80);
     const productUrl = requireHttpUrl(body.productUrl);
@@ -19,8 +21,11 @@ export async function POST(req: Request) {
     const headline = requireString(body.headline, "Headline", 140);
     const desiredAction = requireString(body.desiredAction, "Conversion criteria", 400);
     const referralTerms = requireString(body.referralTerms, "Reward terms", 600);
-    const rewardDollars = requireInt(body.rewardDollars, "Reward", Math.ceil(config.minimumRewardCents / 100), 100000);
-    const goalCount = requireInt(body.goalCount, "Goal", 1, 10000);
+    const rewardDollars = requireInt(body.rewardDollars, "Reward", Math.ceil(config.minimumRewardCents / 100), Math.floor(config.maximumRewardCents / 100));
+    const goalCount = requireInt(body.goalCount, "Goal", 1, config.maximumGoalCount);
+    if (rewardDollars * 100 * goalCount > config.maximumPoolCents) {
+      throw new Error(`Advertised pool cannot exceed $${(config.maximumPoolCents / 100).toLocaleString("en-US")}. Lower the reward or the customer count.`);
+    }
     let logo: string | null = null;
     if (typeof body.companyLogoUrl === "string" && body.companyLogoUrl.trim()) logo = requireHttpUrl(body.companyLogoUrl);
     const payoutMode = body.payoutMode === "manual" ? "manual" : "stripe";
@@ -48,13 +53,14 @@ export async function POST(req: Request) {
       payment_intent_data: { setup_future_usage: "off_session" },
       line_items: [{ quantity: 1, price_data: { currency: "usd", unit_amount: config.launchFeeCents, product_data: { name: "FirstCustomer Network launch", description: `Publish and distribute ${companyName}'s customer mission` } } }],
       metadata: { bounty_id: id },
-      success_url: `${origin}/launch/success?bounty=${id}&key=${encodeURIComponent(ownerKey)}&integration=${encodeURIComponent(integrationKey)}&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/launch/success?bounty=${id}&key=${encodeURIComponent(ownerKey)}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/create?cancelled=1`,
     });
     await query("UPDATE bounties SET stripe_session_id=$2 WHERE id=$1", [id, session.id]);
     return NextResponse.json({ checkoutUrl: session.url });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid request" }, { status: 400 });
+    const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: number }).status) : 400;
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid request" }, { status: status === 429 ? 429 : 400 });
   }
 }

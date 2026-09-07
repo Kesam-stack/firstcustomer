@@ -2,6 +2,7 @@ import Link from "next/link";
 import BountyCard from "@/components/BountyCard";
 import { listMarketplaceBounties, marketplaceStats } from "@/lib/db";
 import { money } from "@/lib/format";
+import { rankFunded } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
 const categories = ["All", "Software", "Artificial Intelligence", "Fintech", "Consumer", "Marketplace", "Professional Services"];
@@ -18,8 +19,8 @@ export default async function Explore({ searchParams }: { searchParams: Promise<
     <div className="market-title">
       <div>
         <span className="eyebrow">Board</span>
-        <h1>Highest bounty sits at #1.</h1>
-        <p>{stats.campaigns} live · {money(Number(stats.open_reward_cents))} open · {stats.click_count} clicks</p>
+        <h1>Highest funded bounty sits at #1.</h1>
+        <p>{stats.campaigns} live · {money(Number(stats.open_reward_cents))} funded pool · {stats.click_count} clicks</p>
       </div>
       <div className="market-title-actions">
         <Link href="/network">Earn</Link>
@@ -41,7 +42,7 @@ export default async function Explore({ searchParams }: { searchParams: Promise<
     </div>
     <div className="board-list">
       {rows.length
-        ? rows.map((row, index) => <BountyCard bounty={row} rank={sort === "reward" ? index + 1 : undefined} key={row.id} />)
+        ? rankFunded(rows).map(({ row, rank }) => <BountyCard bounty={row} rank={sort === "reward" || sort === "recommended" ? rank : undefined} key={row.id} />)
         : <div className="board-empty"><span>Empty lane</span><strong>No campaigns in this view.</strong><p>Change the filter or list the first bounty.</p></div>}
     </div>
   </main>;

@@ -1,6 +1,11 @@
 import { Pool } from "pg";
 import crypto from "node:crypto";
 
+if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_SEED !== "true") {
+  console.error("Refusing to seed production. Set ALLOW_DEMO_SEED=true if you really mean it.");
+  process.exit(1);
+}
+
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("Set DATABASE_URL first");
 const pool = new Pool({ connectionString: url, ssl: url.includes("localhost") ? false : { rejectUnauthorized: false } });

@@ -1,4 +1,4 @@
-import { Pool, type QueryResultRow } from "pg";
+import { Pool, type PoolClient, type QueryResultRow } from "pg";
 import type { Bounty, Referral, Conversion, NetworkMember, CampaignMatch, Rainmaker } from "@/lib/types";
 import { config } from "@/lib/config";
 
@@ -19,6 +19,21 @@ export async function query<T extends QueryResultRow = QueryResultRow>(text: str
   return getPool().query<T>(text, values);
 }
 
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export const bountySelect = `id,slug,creator_email,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,approved_count,launch_fee_cents,platform_fee_bps,payout_mode,payment_verified,is_featured,network_distribution,network_matched_count,last_network_match_at::text,status,created_at::text,activated_at::text`;
 
 export async function getBountyBySlug(slug: string): Promise<Bounty | null> {
@@ -32,11 +47,12 @@ export async function getBountyById(id: string): Promise<Bounty | null> {
 }
 
 export async function listMarketplaceBounties(limit = 12, category?: string, sort: "recommended" | "reward" | "new" | "closing" = "recommended"): Promise<Bounty[]> {
+  const fundedFirst = "(CASE WHEN payment_verified AND payout_mode='stripe' THEN 0 ELSE 1 END)";
   const order = {
-    recommended: "is_featured DESC,payment_verified DESC,reward_cents DESC,created_at DESC",
-    reward: "reward_cents DESC,created_at DESC",
+    recommended: `${fundedFirst},is_featured DESC,reward_cents DESC,created_at DESC`,
+    reward: `${fundedFirst},reward_cents DESC,created_at ASC`,
     new: "created_at DESC",
-    closing: "(goal_count-approved_count) ASC,reward_cents DESC",
+    closing: `${fundedFirst},(goal_count-approved_count) ASC,reward_cents DESC`,
   }[sort];
   const values: unknown[] = [];
   let where = "status='active' AND approved_count < goal_count";
@@ -55,13 +71,15 @@ export async function listMarketplaceBounties(limit = 12, category?: string, sor
   return r.rows;
 }
 
+const fundedLive = `status='active' AND approved_count<goal_count AND payment_verified AND payout_mode='stripe'`;
+
 export async function marketplaceStats() {
   const r = await query<{ campaigns: number; open_reward_cents: string; network_members: number; highest_reward_cents: string; click_count: number }>(
     `SELECT
        (SELECT COUNT(*)::int FROM bounties WHERE status='active' AND approved_count<goal_count) campaigns,
-       (SELECT COALESCE(SUM((goal_count-approved_count)*reward_cents),0)::text FROM bounties WHERE status='active' AND approved_count<goal_count) open_reward_cents,
+       (SELECT COALESCE(SUM((goal_count-approved_count)*reward_cents),0)::text FROM bounties WHERE ${fundedLive}) open_reward_cents,
        (SELECT COUNT(*)::int FROM network_members WHERE status='active') network_members,
-       (SELECT COALESCE(MAX(reward_cents),0)::text FROM bounties WHERE status='active' AND approved_count<goal_count) highest_reward_cents,
+       (SELECT COALESCE(MAX(reward_cents),0)::text FROM bounties WHERE ${fundedLive}) highest_reward_cents,
        (SELECT COALESCE(SUM(r.clicks),0)::int FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE b.status='active' AND b.approved_count<b.goal_count) click_count`,
   );
   return r.rows[0] ?? { campaigns: 0, open_reward_cents: "0", network_members: 0, highest_reward_cents: "0", click_count: 0 };
@@ -69,9 +87,11 @@ export async function marketplaceStats() {
 
 export async function getBountyRank(bounty: Bounty): Promise<number | null> {
   if (bounty.status !== "active" || bounty.approved_count >= bounty.goal_count) return null;
+  if (!bounty.payment_verified || bounty.payout_mode !== "stripe") return null;
   const r = await query<{ rank: number }>(
     `SELECT COUNT(*)::int + 1 AS rank FROM bounties
       WHERE status='active' AND approved_count < goal_count
+        AND payment_verified AND payout_mode='stripe'
         AND (reward_cents > $1
           OR (reward_cents = $1 AND created_at < $2)
           OR (reward_cents = $1 AND created_at = $2 AND id < $3))`,

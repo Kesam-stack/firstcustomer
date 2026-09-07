@@ -10,7 +10,7 @@ export default async function Create({ searchParams }: { searchParams: Promise<{
     <div className="create-intro">
       <span className="eyebrow">List</span>
       <h1>Put a price on a customer.</h1>
-      <p>Highest bounty sits at #1. Write the acceptance test first.</p>
+      <p>Highest funded bounty sits at #1. Write the acceptance test first.</p>
       <div className="create-rail">
         <div><span>01</span><strong>Company</strong><small>What you sell</small></div>
         <div><span>02</span><strong>Outcome</strong><small>What qualifies</small></div>
@@ -22,6 +22,9 @@ export default async function Create({ searchParams }: { searchParams: Promise<{
       launchFeeDollars={launchFeeDollars}
       platformFeePercent={platformFeePercent}
       minimumRewardDollars={config.minimumRewardCents / 100}
+      maximumRewardDollars={config.maximumRewardCents / 100}
+      maximumGoalCount={config.maximumGoalCount}
+      maximumPoolDollars={config.maximumPoolCents / 100}
       initialProductUrl={params.url || ""}
       initialReward={Number.isFinite(reward) && reward > 0 ? reward : undefined}
       initialGoal={Number.isFinite(goal) && goal > 0 ? goal : undefined}

@@ -6,6 +6,9 @@ export default function CreateBountyForm({
   launchFeeDollars,
   platformFeePercent,
   minimumRewardDollars,
+  maximumRewardDollars,
+  maximumGoalCount,
+  maximumPoolDollars,
   initialProductUrl = "",
   initialReward,
   initialGoal,
@@ -13,15 +16,20 @@ export default function CreateBountyForm({
   launchFeeDollars: number;
   platformFeePercent: number;
   minimumRewardDollars: number;
+  maximumRewardDollars: number;
+  maximumGoalCount: number;
+  maximumPoolDollars: number;
   initialProductUrl?: string;
   initialReward?: number;
   initialGoal?: number;
 }) {
-  const [reward, setReward] = useState(initialReward || Math.max(50, minimumRewardDollars));
-  const [goal, setGoal] = useState(initialGoal || 10);
+  const [reward, setReward] = useState(Math.min(maximumRewardDollars, initialReward || Math.max(50, minimumRewardDollars)));
+  const [goal, setGoal] = useState(Math.min(maximumGoalCount, initialGoal || 10));
+  const [payoutMode, setPayoutMode] = useState("stripe");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const total = useMemo(() => Math.max(0, reward) * Math.max(0, goal), [reward, goal]);
+  const poolTooBig = total > maximumPoolDollars;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,18 +73,20 @@ export default function CreateBountyForm({
     <section>
       <div className="form-section-head"><span>03</span><div><h2>Economics</h2><p>Price the outcome, not the traffic.</p></div></div>
       <div className="economics-grid">
-        <label>Reward per customer<div className="money-input"><span>$</span><input name="rewardDollars" required min={minimumRewardDollars} max="100000" type="number" value={reward} onChange={(e) => setReward(Number(e.target.value))} /></div></label>
-        <label>Customers wanted<input name="goalCount" required min="1" max="10000" type="number" value={goal} onChange={(e) => setGoal(Number(e.target.value))} /></label>
-        <label>Payout<select name="payoutMode" defaultValue="stripe"><option value="stripe">Automatic via Stripe Connect</option><option value="manual">Company pays manually</option></select></label>
+        <label>Reward per customer<div className="money-input"><span>$</span><input name="rewardDollars" required min={minimumRewardDollars} max={maximumRewardDollars} type="number" value={reward} onChange={(e) => setReward(Number(e.target.value))} /></div></label>
+        <label>Customers wanted<input name="goalCount" required min="1" max={maximumGoalCount} type="number" value={goal} onChange={(e) => setGoal(Number(e.target.value))} /></label>
+        <label>Payout<select name="payoutMode" value={payoutMode} onChange={(e) => setPayoutMode(e.target.value)}><option value="stripe">Automatic via Stripe Connect</option><option value="manual">Company pays manually</option></select></label>
       </div>
       <div className="budget-line"><span>Maximum advertised reward pool</span><strong>{total.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}</strong></div>
-      <p className="form-note">Launch fee {launchFeeDollars.toLocaleString("en-US", { style: "currency", currency: "USD" })}. Automatic payouts add a {platformFeePercent}% FirstCustomer success fee to each approved reward. Stripe processing is separate.</p>
+      {poolTooBig && <div className="error">Pool cannot exceed {maximumPoolDollars.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}. Lower the reward or customer count.</div>}
+      {payoutMode === "manual" && <div className="warning">Manual listings appear on the board but cannot take #1. Rank is reserved for automatic-payout campaigns with a card on file.</div>}
+      <p className="form-note">Launch fee {launchFeeDollars.toLocaleString("en-US", { style: "currency", currency: "USD" })}. Automatic payouts charge the company’s saved card for the reward plus a {platformFeePercent}% FirstCustomer fee, then transfer the reward to the referrer. Stripe processing is separate. Max ${maximumRewardDollars.toLocaleString("en-US")} per customer.</p>
     </section>
 
     <section className="launch-final">
-      <div><span>04</span><h2>Take a rank</h2><p>After checkout the bounty goes live. Highest reward sits at #1. FirstCustomer also routes it to matching network members.</p></div>
+      <div><span>04</span><h2>Take a rank</h2><p>After checkout the bounty goes live. Only automatic payouts compete for #1. FirstCustomer also routes it to matching network members.</p></div>
       {error && <div className="error">{error}</div>}
-      <button className="button launch-button wide" disabled={loading}>{loading ? "Opening checkout…" : "Pay " + launchFeeDollars.toLocaleString("en-US", { style: "currency", currency: "USD" }) + " and launch →"}</button>
+      <button className="button launch-button wide" disabled={loading || poolTooBig}>{loading ? "Opening checkout…" : "Pay " + launchFeeDollars.toLocaleString("en-US", { style: "currency", currency: "USD" }) + " and launch →"}</button>
       <small>No fake traffic. No fabricated payouts. You stay responsible for approving only customers that meet your published criteria.</small>
     </section>
   </form>;

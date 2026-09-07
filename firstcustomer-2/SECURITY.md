@@ -1,23 +1,32 @@
 # Security notes
 
-This repository is an MVP, not a production-complete marketplace.
+FirstCustomer is an early marketplace. Automatic payouts move real money.
 
-## Deliberate boundaries
+## What the product does
 
-- FirstCustomer charges only its own $9 launch fee.
-- It does not hold, escrow, transmit, or automatically split referral-reward funds.
-- Founders verify conversions and pay referrers directly.
-- Founder dashboard access uses an opaque high-entropy secret URL in this MVP.
+- Charges a launch fee through Stripe Checkout.
+- For automatic-payout campaigns, charges the company's saved card for reward + platform fee, then transfers the reward via Stripe Connect.
+- Records a public ledger row only after the transfer succeeds.
+- Uses hashed secret URLs for founder, referrer, and network dashboards.
 
-## Before production scale
+## Current controls
 
-1. Replace owner-secret URLs with authenticated founder accounts and short-lived sessions.
-2. Add rate limiting and bot protection to all mutation endpoints.
-3. Add CSRF/origin controls where appropriate.
-4. Add email verification and campaign moderation.
-5. Add structured audit logs for conversion approvals/reversals.
-6. Encrypt or minimize personally identifying data and define retention/deletion controls.
-7. Add secret rotation, managed infrastructure, backups, observability, and alerting.
-8. Add tests for tenant/owner authorization on every management endpoint.
-9. Have counsel review referral, advertising, tax, privacy, and prohibited-category obligations.
-10. If platform-managed payouts are ever added, use an appropriate marketplace payments architecture and obtain legal/compliance review before custodying funds.
+- Owner/referrer/network secrets are stored as SHA-256 hashes and compared with a constant-time check.
+- Conversion customer references are unique per campaign.
+- Automatic payouts use Stripe idempotency keys so a retry cannot create a second charge for the same conversion.
+- Rank is limited to payment-verified automatic-payout campaigns.
+- Advertised reward, goal, and pool are capped.
+- Self-referrals by founder email are rejected.
+- Preview bots do not increment public click counts.
+- Mutation endpoints have basic per-IP rate limits.
+
+## Still required before scale
+
+1. Replace secret URLs with authenticated accounts and short-lived sessions.
+2. Add a durable rate limiter (Redis) and bot protection.
+3. Verify X handles and company identity.
+4. Add campaign moderation and prohibited-category blocking.
+5. Add refund/reversal handling when a chargeback follows a transfer.
+6. Encrypt or minimize PII and define retention/deletion.
+7. Have counsel review payments, tax reporting, advertising, and privacy.
+8. Subscribe the Stripe webhook to `checkout.session.completed` and `account.updated`.

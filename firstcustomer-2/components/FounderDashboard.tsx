@@ -4,9 +4,10 @@ import { useState } from "react";
 import type { Bounty, Referral, Conversion } from "@/lib/types";
 import { money } from "@/lib/format";
 
-export default function FounderDashboard({ bounty, referrals, conversions, ownerKey, integrationKey, networkMatchCount }: { bounty: Bounty; referrals: Referral[]; conversions: Conversion[]; ownerKey: string; integrationKey?: string; networkMatchCount: number }) {
+export default function FounderDashboard({ bounty, referrals, conversions, ownerKey, integrationKey, integrationPrefix, networkMatchCount }: { bounty: Bounty; referrals: Referral[]; conversions: Conversion[]; ownerKey: string; integrationKey?: string; integrationPrefix?: string; networkMatchCount: number }) {
   const [message, setMessage] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [apiKey, setApiKey] = useState(integrationKey || "");
   const publicUrl = `${typeof window !== "undefined" ? location.origin : ""}/b/${bounty.slug}`;
 
   async function approve(referralId: string) {
@@ -34,6 +35,15 @@ export default function FounderDashboard({ bounty, referrals, conversions, owner
     if (data.status === "paid") location.reload();
   }
 
+  async function rotateKey() {
+    if (!confirm("This replaces the Conversion API key. Old keys stop working immediately.")) return;
+    const response = await fetch(`/api/manage/${bounty.id}/integration`, { method: "POST", headers: { "x-owner-key": ownerKey } });
+    const data = await response.json();
+    if (!response.ok) return setMessage(data.error || "Could not rotate key");
+    setApiKey(data.integrationKey);
+    setMessage("New Conversion API key created. Copy it now — it will not be shown again.");
+  }
+
   async function refreshNetwork() {
     setRefreshing(true);
     const response = await fetch(`/api/manage/${bounty.id}/network`, { method: "POST", headers: { "x-owner-key": ownerKey } });
@@ -52,7 +62,12 @@ export default function FounderDashboard({ bounty, referrals, conversions, owner
     <div className="stats"><div><span>Approved</span><strong>{bounty.approved_count}</strong></div><div><span>Goal</span><strong>{bounty.goal_count}</strong></div><div><span>Reward</span><strong>{money(bounty.reward_cents)}</strong></div><div><span>Referrers</span><strong>{referrals.length}</strong></div></div>
 
     <div className="share-strip"><span>Optional external distribution</span><code>{publicUrl}</code><button onClick={() => navigator.clipboard.writeText(publicUrl)}>Copy</button></div>
-    {integrationKey && <div className="integration-box"><b>Conversion API key — shown on this launch link</b><code>{integrationKey}</code><p className="fineprint">POST conversions to /api/v1/conversions with this key as a Bearer token. Keep it private.</p></div>}
+    <div className="integration-box">
+      <b>Conversion API</b>
+      {apiKey ? <code>{apiKey}</code> : <p className="fineprint">Prefix {integrationPrefix || "fc_live_"}… Generate a key here. It is shown once.</p>}
+      <p className="fineprint">POST /api/v1/conversions with Authorization: Bearer &lt;key&gt;. Reporting a conversion does not pay it — you still approve.</p>
+      <button className="tiny-button" onClick={rotateKey}>{apiKey ? "Rotate key" : "Generate API key"}</button>
+    </div>
     {message && <div className="notice">{message}</div>}
 
     <section className="table-card"><div className="table-head"><h2>Referrers</h2><span>{referrals.length} total</span></div><div className="table-scroll"><table><thead><tr><th>Referrer</th><th>Clicks</th><th>Approved</th><th>Earned</th><th>Payout ready</th><th></th></tr></thead><tbody>{referrals.length ? referrals.map((referral) => <tr key={referral.id}><td>@{referral.x_handle}</td><td>{referral.clicks}</td><td>{referral.approved_conversions}</td><td>{money(referral.earned_cents)}</td><td>{referral.payouts_enabled ? "Yes" : "No"}</td><td><button className="tiny-button" onClick={() => approve(referral.id)}>Approve customer</button></td></tr>) : <tr><td colSpan={6}>No one has claimed this mission yet. Network matches are active above.</td></tr>}</tbody></table></div></section>

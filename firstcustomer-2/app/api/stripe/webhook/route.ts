@@ -12,6 +12,7 @@ export async function POST(req: Request) {
 
   try {
     const event = stripe().webhooks.constructEvent(await req.text(), signature, secret);
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const bountyId = session.metadata?.bounty_id;
@@ -37,6 +38,13 @@ export async function POST(req: Request) {
         }
       }
     }
+
+    if (event.type === "account.updated") {
+      const account = event.data.object;
+      const enabled = Boolean(account.payouts_enabled && account.charges_enabled !== false);
+      await query("UPDATE referrals SET payouts_enabled=$2 WHERE stripe_account_id=$1", [account.id, enabled]);
+    }
+
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error(error);

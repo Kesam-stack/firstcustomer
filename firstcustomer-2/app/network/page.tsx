@@ -3,6 +3,7 @@ import JoinNetworkForm from "@/components/JoinNetworkForm";
 import BountyCard from "@/components/BountyCard";
 import { listMarketplaceBounties, marketplaceStats } from "@/lib/db";
 import { money } from "@/lib/format";
+import { rankFunded } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function NetworkPage() {
         <p>Companies price a customer. You claim a tracked link, send the right people, and get paid when it closes.</p>
       </div>
       <div className="network-numbers">
-        <div><span>Open pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
+        <div><span>Funded pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
         <div><span>Live</span><strong>{stats.campaigns}</strong></div>
         <div><span>Members</span><strong>{stats.network_members}</strong></div>
       </div>
@@ -33,7 +34,7 @@ export default async function NetworkPage() {
         </div>
         <div className="board-list">
           {campaigns.length
-            ? campaigns.map((campaign, index) => <BountyCard bounty={campaign} rank={index + 1} key={campaign.id} />)
+            ? rankFunded(campaigns).map(({ row, rank }) => <BountyCard bounty={row} rank={rank} key={row.id} />)
             : <div className="board-empty"><span>Waiting on demand</span><strong>No live campaigns yet.</strong><p>Join now. Your feed activates when a company lists.</p></div>}
         </div>
       </div>

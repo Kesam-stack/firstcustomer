@@ -21,8 +21,8 @@ async function activate(bountyId: string, sessionId: string) {
   return true;
 }
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ bounty?: string; key?: string; integration?: string; session_id?: string }> }) {
-  const { bounty, key, integration, session_id } = await searchParams;
+export default async function Page({ searchParams }: { searchParams: Promise<{ bounty?: string; key?: string; session_id?: string }> }) {
+  const { bounty, key, session_id } = await searchParams;
   let activated = false;
   let matched = 0;
   if (bounty && key) {
@@ -38,5 +38,5 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ b
     }
   }
 
-  return <main className="narrow page-pad center-page"><div className="success-mark">✓</div><h1>{activated ? "You're on the board." : "Payment received."}</h1><p className="muted">{activated ? `Your bounty is live. Rank is the reward — highest paying campaign sits at #1. FirstCustomer has already routed it to ${matched} matching network member${matched === 1 ? "" : "s"}.` : "Activation is being confirmed."}</p>{integration && <div className="integration-box"><b>Conversion API key — copy it now</b><code>{integration}</code><p className="fineprint">Use as: Authorization: Bearer &lt;key&gt;. Do not publish this key.</p></div>}{bounty && key && <Link className="button launch-button" href={`/manage/${bounty}?key=${encodeURIComponent(key)}&integration=${encodeURIComponent(integration || "")}`}>Open company dashboard →</Link>}</main>;
+  return <main className="narrow page-pad center-page"><div className="success-mark">✓</div><h1>{activated ? "You're on the board." : "Payment received."}</h1><p className="muted">{activated ? `Your bounty is live. Only automatic-payout campaigns compete for #1. FirstCustomer has already routed it to ${matched} matching network member${matched === 1 ? "" : "s"}.` : "Activation is being confirmed."}</p>{bounty && key && <Link className="button launch-button" href={`/manage/${bounty}?key=${encodeURIComponent(key)}`}>Open company dashboard →</Link>}</main>;
 }

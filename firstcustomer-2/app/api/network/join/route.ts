@@ -4,6 +4,7 @@ import { randomToken, hashToken } from "@/lib/security";
 import { requireEmail, requireInt, requireString } from "@/lib/validation";
 import { cleanHandle } from "@/lib/format";
 import { matchMemberToCampaigns } from "@/lib/network";
+import { limitOrThrow } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 const allowedCategories = new Set(["All", "Software", "Artificial Intelligence", "Fintech", "Consumer", "Marketplace", "Professional Services", "Other"]);
@@ -11,6 +12,7 @@ const allowedChannels = new Set(["X", "LinkedIn", "Newsletter", "Community", "Di
 
 export async function POST(req: Request) {
   try {
+    limitOrThrow(req, "network-join", 8);
     const body = await req.json();
     const displayName = requireString(body.displayName, "Name", 80);
     const email = requireEmail(body.email);
@@ -38,6 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ dashboardUrl: `${origin}/network/${id}?key=${encodeURIComponent(key)}`, matches: matches.length });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not join the network" }, { status: 400 });
+    const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: number }).status) : 400;
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not join the network" }, { status: status === 429 ? 429 : 400 });
   }
 }

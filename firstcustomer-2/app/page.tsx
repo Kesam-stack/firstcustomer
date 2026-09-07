@@ -4,6 +4,7 @@ import BountyCard from "@/components/BountyCard";
 import QuickLaunch from "@/components/QuickLaunch";
 import { money } from "@/lib/format";
 import { config } from "@/lib/config";
+import { rankFunded } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function Home() {
 
   return <main>
     <section className="board-top shell">
-      <p className="board-kicker">Highest bounty sits at #1</p>
+      <p className="board-kicker">Highest funded bounty sits at #1</p>
       <h1>Pay for customers.<br />Not clicks.</h1>
       <p className="board-sub">Companies price a customer. People deliver it.</p>
       <QuickLaunch minimumRewardDollars={config.minimumRewardCents / 100} />
@@ -41,7 +42,7 @@ export default async function Home() {
 
     <section className="board-meta">
       <div className="shell ticker-inner">
-        <div><span>Open pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
+        <div><span>Funded pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
         <div><span>Live listings</span><strong>{stats.campaigns}</strong></div>
         <div><span>Take #1</span><strong>{takeFirst}</strong></div>
         <div><span>Paid through ledger</span><strong>{money(Number(ledger.total_paid_cents))}</strong></div>
@@ -58,14 +59,14 @@ export default async function Home() {
       </div>
       <div className="board-list">
         {bounties.length
-          ? bounties.map((bounty, index) => <BountyCard bounty={bounty} rank={index + 1} key={bounty.id} />)
+          ? rankFunded(bounties).map(({ row, rank }) => <BountyCard bounty={row} rank={rank} key={row.id} />)
           : <div className="board-empty">
               <span>The board is open</span>
-              <strong>First listing takes #1.</strong>
-              <p>We do not invent demand. The first paid campaign becomes the top of the market automatically.</p>
+              <strong>First funded listing takes #1.</strong>
+              <p>We do not invent demand. Only automatic-payout campaigns compete for rank.</p>
             </div>}
       </div>
-      <p className="board-rule">Rank is the reward. Highest paying campaign sits at #1. A payout enters the ledger only after settlement succeeds.</p>
+      <p className="board-rule">Rank is funded demand. Manual listings cannot take #1. A payout enters the ledger only after Stripe confirms the transfer.</p>
     </section>
 
     <section className="split-boards shell">

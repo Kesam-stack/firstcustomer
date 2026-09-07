@@ -8,11 +8,11 @@ const serif = Instrument_Serif({ weight: "400", subsets: ["latin"], variable: "-
 const mono = IBM_Plex_Mono({ weight: ["400", "500"], subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "FirstCustomer — Highest bounty sits at #1",
-  description: "A live board where companies pay for customers, not clicks. Rank is the reward.",
+  title: "FirstCustomer — Highest funded bounty sits at #1",
+  description: "A live board where companies pay for customers, not clicks. Rank is funded automatic-payout demand.",
   openGraph: {
     title: "FirstCustomer",
-    description: "Pay for customers. Not clicks. Highest bounty sits at #1.",
+    description: "Pay for customers. Not clicks. Highest funded bounty sits at #1.",
   },
 };
 

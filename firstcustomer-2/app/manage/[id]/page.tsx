@@ -13,6 +13,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (!auth.rows[0] || !safeEqualHex(auth.rows[0].owner_secret_hash, hashToken(key))) notFound();
   const bounty = await getBountyById(id);
   if (!bounty) notFound();
+  const prefix = await query<{ integration_secret_prefix: string | null }>("SELECT integration_secret_prefix FROM bounties WHERE id=$1", [id]);
   const [referrals, conversions, matchCount] = await Promise.all([listReferrals(id), listConversions(id), networkMatchCount(id)]);
-  return <FounderDashboard bounty={bounty} referrals={referrals} conversions={conversions} ownerKey={key} integrationKey={integration} networkMatchCount={matchCount} />;
+  return <FounderDashboard bounty={bounty} referrals={referrals} conversions={conversions} ownerKey={key} integrationKey={integration} integrationPrefix={prefix.rows[0]?.integration_secret_prefix || undefined} networkMatchCount={matchCount} />;
 }

@@ -4,6 +4,7 @@ import { getBountyBySlug, getBountyRank, bountyTraffic } from "@/lib/db";
 import { money, poolCents, remaining, tweetIntent } from "@/lib/format";
 import ReferralBox from "@/components/ReferralBox";
 import { config } from "@/lib/config";
+import { isFunded } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +25,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     <div className="listing">
       <div className="bounty-topbar">
         <span className="live-dot" />
-        <b>{rank ? `#${rank} on the board` : bounty.status.toUpperCase()}</b>
+        <b>{rank ? `#${rank} on the board` : isFunded(bounty) ? bounty.status.toUpperCase() : "Manual payout"}</b>
         <span>{bounty.category}</span>
-        {bounty.payment_verified && <span className="verified-badge">Payment verified</span>}
+        {isFunded(bounty) ? <span className="verified-badge">Funded auto payout</span> : bounty.payment_verified ? <span className="verified-badge">Launch paid · manual</span> : null}
       </div>
 
       <div className="campaign-company">
@@ -44,7 +45,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <div><span>Clicks</span><strong>{traffic.click_count}</strong></div>
       </div>
       <div className="progress"><div style={{ width: `${pct}%` }} /></div>
-      <p className="listing-meta">{traffic.referrer_count} referrer{traffic.referrer_count === 1 ? "" : "s"} · {bounty.payout_mode === "stripe" ? "Automatic payout" : "Manual payout"} · {bounty.approved_count}/{bounty.goal_count} approved</p>
+      <p className="listing-meta">{traffic.referrer_count} referrer{traffic.referrer_count === 1 ? "" : "s"} · {isFunded(bounty) ? "Funded automatic payout" : "Manual payout — cannot take #1"} · {bounty.approved_count}/{bounty.goal_count} approved</p>
 
       <div className="summary-box">
         <span>Company</span>

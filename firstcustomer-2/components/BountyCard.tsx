@@ -1,12 +1,14 @@
 import Link from "next/link";
 import type { Bounty } from "@/lib/types";
 import { money, poolCents, remaining } from "@/lib/format";
+import { isFunded } from "@/lib/market";
 
 export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: number }) {
   const left = remaining(bounty.goal_count, bounty.approved_count);
   const pool = poolCents(bounty.reward_cents, bounty.goal_count, bounty.approved_count);
   const initial = bounty.company_name.trim().charAt(0).toUpperCase();
   const clicks = bounty.click_count ?? 0;
+  const funded = isFunded(bounty);
 
   return <Link href={`/b/${bounty.slug}`} className="board-row">
     <div className={`board-rank${rank === 1 ? " top" : ""}`}>{rank ? String(rank).padStart(2, "0") : "—"}</div>
@@ -19,6 +21,6 @@ export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: nu
     <div className="market-number"><span>Pool</span><strong>{money(pool)}</strong></div>
     <div className="market-number"><span>Left</span><strong>{left}</strong></div>
     <div className="market-number"><span>Clicks</span><strong>{clicks}</strong></div>
-    <div className="market-status">{bounty.payment_verified ? <span className="status-verified">Live</span> : <span>Pending</span>}<small>{bounty.payout_mode === "stripe" ? "Auto" : "Manual"}</small></div>
+    <div className="market-status">{funded ? <span className="status-verified">Funded</span> : bounty.payment_verified ? <span>Manual</span> : <span>Pending</span>}<small>{funded ? "Auto payout" : "Cannot take #1"}</small></div>
   </Link>;
 }
