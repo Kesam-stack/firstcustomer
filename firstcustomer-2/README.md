@@ -59,7 +59,7 @@ Required for production:
 
 ```env
 DATABASE_URL=postgresql://...
-NEXT_PUBLIC_APP_URL=https://firstcustomer-production.up.railway.app
+NEXT_PUBLIC_APP_URL=https://firstcustomer.xyz
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
@@ -98,4 +98,8 @@ Required events:
 
 ## Deployment
 
-Railway service root directory is `/firstcustomer-2` in the current GitHub layout. Add `npm run db:migrate` as the pre-deploy command after this source version is pushed.
+Canonical production host is `https://firstcustomer.xyz`. Railway service root directory is `/firstcustomer-2` in the current GitHub layout. Add `npm run db:migrate` as the pre-deploy command after this source version is pushed.
+
+Name.com DNS for the apex must be an **ANAME** to the Railway target (`pacca1ty.up.railway.app`), not a CNAME. `www` is a CNAME to the same target. Add the `_railway-verify` TXT record from `railway domain status firstcustomer.xyz` so TLS can issue.
+
+The Stripe webhook can keep using the Railway service URL until the custom-domain certificate is issued. Then add `https://firstcustomer.xyz/api/stripe/webhook` for `checkout.session.completed` and `account.updated`.

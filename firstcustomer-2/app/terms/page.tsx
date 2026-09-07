@@ -1,7 +1,7 @@
 export default function Terms() {
   return <main className="shell narrow page-pad legal">
     <h1>Terms</h1>
-    <p>These terms describe how FirstCustomer works today. They are not a substitute for legal advice. If they conflict with a later counsel-reviewed version, the later version controls.</p>
+    <p>These terms describe how FirstCustomer works today at firstcustomer.xyz. They are not a substitute for legal advice. If they conflict with a later counsel-reviewed version, the later version controls.</p>
 
     <h2>The product</h2>
     <p>FirstCustomer is a public board where companies list a cash reward for a defined customer outcome. People claim tracked referral links. Companies approve qualifying conversions. Rank on the board is determined by the advertised per-customer reward among campaigns that use automatic payouts.</p>
