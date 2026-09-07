@@ -1,0 +1,27 @@
+{
+  "name": "firstcustomer",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "db:seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "pg": "8.23.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "stripe": "22.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/pg": "8.23.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
