@@ -3,7 +3,7 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { getBountyById, listConversions, listReferrals, networkMatchCount } from "@/lib/db";
 import { money } from "@/lib/format";
-import { isFunded } from "@/lib/market";
+import { isFunded, isHoldActive } from "@/lib/market";
 import { CampaignActions, PayoutRetry } from "@/components/AdminActions";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function AdminCampaign({ params }: { params: Promise<{ id: 
       <div><span>Approved</span><strong>{bounty.approved_count}/{bounty.goal_count}</strong></div>
       <div><span>Payout</span><strong>{isFunded(bounty) ? "Funded" : bounty.payout_mode}</strong></div>
     </div>
-    <p className="fineprint"><Link href={`/b/${bounty.slug}`}>Public page</Link> · {bounty.product_url} · {matches} network matches · {bounty.payment_verified ? "launch paid" : "unpaid"}{bounty.is_featured ? " · featured" : ""}</p>
+    <p className="fineprint"><Link href={`/b/${bounty.slug}`}>Public page</Link> · {bounty.product_url} · {matches} network matches · {bounty.payment_verified ? "launch paid" : "unpaid"}{isHoldActive(bounty) ? " · hold #1" : bounty.is_featured ? " · featured" : ""}</p>
     <div className="summary-box">
       <span>What qualifies</span>
       <p>{bounty.desired_action}</p>

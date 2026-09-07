@@ -4,7 +4,7 @@ import { getBountyBySlug, getBountyRank, bountyTraffic } from "@/lib/db";
 import { money, poolCents, remaining, tweetIntent } from "@/lib/format";
 import ReferralBox from "@/components/ReferralBox";
 import { config } from "@/lib/config";
-import { isFunded } from "@/lib/market";
+import { isFunded, isHoldActive } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const pool = poolCents(bounty.reward_cents, bounty.goal_count, bounty.approved_count);
   const pct = Math.min(100, Math.round((bounty.approved_count / bounty.goal_count) * 100));
   const host = new URL(bounty.product_url).hostname;
+  const holding = isHoldActive(bounty);
   const share = tweetIntent(`${bounty.company_name} is paying ${money(bounty.reward_cents)} per verified customer on FirstCustomer. ${config.appUrl}/b/${bounty.slug}`);
 
   return <main className="narrow page-pad">
@@ -27,7 +28,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <span className="live-dot" />
         <b>{rank ? `#${rank} on the board` : isFunded(bounty) ? bounty.status.toUpperCase() : "Manual payout"}</b>
         <span>{bounty.category}</span>
-        {isFunded(bounty) ? <span className="verified-badge">{bounty.launch_fee_cents === 0 ? "Fee waived · live" : "Funded auto payout"}</span> : bounty.payment_verified ? <span className="verified-badge">Launch paid · manual</span> : null}
+        {holding ? <span className="verified-badge">Hold #1</span> : isFunded(bounty) ? <span className="verified-badge">{bounty.launch_fee_cents === 0 ? "Fee waived · live" : "Funded auto payout"}</span> : bounty.payment_verified ? <span className="verified-badge">Launch paid · manual</span> : null}
       </div>
 
       <div className="campaign-company">
@@ -45,7 +46,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <div><span>Clicks</span><strong>{traffic.click_count}</strong></div>
       </div>
       <div className="progress"><div style={{ width: `${pct}%` }} /></div>
-      <p className="listing-meta">{traffic.referrer_count} referrer{traffic.referrer_count === 1 ? "" : "s"} · {isFunded(bounty) ? "Funded automatic payout" : "Manual payout — cannot take #1"} · {bounty.approved_count}/{bounty.goal_count} approved</p>
+      <p className="listing-meta">{traffic.referrer_count} referrer{traffic.referrer_count === 1 ? "" : "s"} · {holding ? "Holding #1" : isFunded(bounty) ? "Funded automatic payout" : "Manual payout — cannot take #1"} · {bounty.approved_count}/{bounty.goal_count} approved</p>
 
       <div className="summary-box">
         <span>Company</span>

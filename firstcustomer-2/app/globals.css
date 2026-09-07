@@ -251,6 +251,13 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;box
 .distribution-number{text-align:right}
 .distribution-number strong{font-family:var(--mono);font-size:30px;font-weight:500;display:block}
 .distribution-number span{font-size:11px;color:var(--ink)}
+.billing-grid{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--ink)}
+.billing-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:22px 0}
+.billing-card + .billing-card{border-left:1px solid var(--ink);padding-left:28px;margin-left:28px}
+.billing-card span{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent-ink)}
+.billing-card h2{font-size:22px;margin:5px 0}
+.billing-card p{font-size:11px;color:var(--muted);margin:0;max-width:360px}
+.dashboard-head + .distribution-card + .stats + .warning{margin-top:18px}
 .share-strip{display:flex;gap:12px;align-items:center;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:12px 0;font-size:12px}
 .share-strip code{flex:1;overflow:auto;font-family:var(--mono)}
 .share-strip button,.tiny-button{border:1px solid var(--ink);background:transparent;padding:7px 9px;font-family:var(--mono);font-size:11px;text-transform:uppercase;cursor:pointer;color:var(--ink)}
@@ -366,6 +373,8 @@ body:has(.admin-app) .site-footer{display:none}
   .mission-row{grid-template-columns:1fr}
   .distribution-card{grid-template-columns:1fr}
   .distribution-number{text-align:left}
+  .billing-grid{grid-template-columns:1fr}
+  .billing-card + .billing-card{border-left:0;margin-left:0;padding-left:0;border-top:1px solid var(--ink)}
   .dashboard-head{align-items:flex-start;flex-direction:column}
   .footer{align-items:flex-start;flex-direction:column;padding:22px 0}
   .footer>div{flex-wrap:wrap}

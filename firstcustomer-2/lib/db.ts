@@ -34,7 +34,11 @@ export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>)
   }
 }
 
-export const bountySelect = `id,slug,creator_email,creator_x_handle,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,approved_count,launch_fee_cents,platform_fee_bps,payout_mode,payment_verified,is_featured,network_distribution,network_matched_count,last_network_match_at::text,status,created_at::text,activated_at::text`;
+export const bountySelect = `id,slug,creator_email,creator_x_handle,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,approved_count,launch_fee_cents,platform_fee_bps,payout_mode,payment_verified,is_featured,featured_until::text,network_distribution,network_matched_count,last_network_match_at::text,status,created_at::text,activated_at::text`;
+
+const featuredLive = `(featured_until IS NOT NULL AND featured_until > NOW())`;
+const fundedLiveRow = `(payment_verified AND payout_mode='stripe')`;
+const boardRankOrder = `CASE WHEN ${featuredLive} THEN 0 ELSE 1 END, CASE WHEN ${fundedLiveRow} THEN 0 ELSE 1 END, CASE WHEN ${featuredLive} THEN featured_until END DESC NULLS LAST, reward_cents DESC, created_at ASC, id ASC`;
 
 export async function getBountyBySlug(slug: string): Promise<Bounty | null> {
   const r = await query<Bounty>(`SELECT ${bountySelect} FROM bounties WHERE slug=$1 LIMIT 1`, [slug]);
@@ -47,10 +51,10 @@ export async function getBountyById(id: string): Promise<Bounty | null> {
 }
 
 export async function listMarketplaceBounties(limit = 12, category?: string, sort: "recommended" | "reward" | "new" | "closing" = "recommended"): Promise<Bounty[]> {
-  const fundedFirst = "(CASE WHEN payment_verified AND payout_mode='stripe' THEN 0 ELSE 1 END)";
+  const fundedFirst = `(CASE WHEN ${fundedLiveRow} THEN 0 ELSE 1 END)`;
   const order = {
-    recommended: `${fundedFirst},is_featured DESC,reward_cents DESC,created_at DESC`,
-    reward: `${fundedFirst},reward_cents DESC,created_at ASC`,
+    recommended: boardRankOrder,
+    reward: boardRankOrder,
     new: "created_at DESC",
     closing: `${fundedFirst},(goal_count-approved_count) ASC,reward_cents DESC`,
   }[sort];
@@ -88,14 +92,40 @@ export async function marketplaceStats() {
 export async function getBountyRank(bounty: Bounty): Promise<number | null> {
   if (bounty.status !== "active" || bounty.approved_count >= bounty.goal_count) return null;
   if (!bounty.payment_verified || bounty.payout_mode !== "stripe") return null;
+  const featuredUntil = bounty.featured_until && Date.parse(bounty.featured_until) > Date.now() ? bounty.featured_until : null;
   const r = await query<{ rank: number }>(
-    `SELECT COUNT(*)::int + 1 AS rank FROM bounties
-      WHERE status='active' AND approved_count < goal_count
-        AND payment_verified AND payout_mode='stripe'
-        AND (reward_cents > $1
-          OR (reward_cents = $1 AND created_at < $2)
-          OR (reward_cents = $1 AND created_at = $2 AND id < $3))`,
-    [bounty.reward_cents, bounty.created_at, bounty.id],
+    `WITH me AS (
+       SELECT $1::int AS reward_cents,
+              $2::timestamptz AS created_at,
+              $3::uuid AS id,
+              ($4::timestamptz IS NOT NULL AND $4::timestamptz > NOW()) AS featured,
+              $4::timestamptz AS featured_until
+     )
+     SELECT COUNT(*)::int + 1 AS rank
+       FROM bounties b, me
+      WHERE b.status='active' AND b.approved_count < b.goal_count
+        AND b.payment_verified AND b.payout_mode='stripe'
+        AND (
+          ((b.featured_until IS NOT NULL AND b.featured_until > NOW()) AND NOT me.featured)
+          OR (
+            (b.featured_until IS NOT NULL AND b.featured_until > NOW()) AND me.featured
+            AND (
+              b.featured_until > me.featured_until
+              OR (b.featured_until = me.featured_until AND b.reward_cents > me.reward_cents)
+              OR (b.featured_until = me.featured_until AND b.reward_cents = me.reward_cents AND b.created_at < me.created_at)
+              OR (b.featured_until = me.featured_until AND b.reward_cents = me.reward_cents AND b.created_at = me.created_at AND b.id < me.id)
+            )
+          )
+          OR (
+            NOT (b.featured_until IS NOT NULL AND b.featured_until > NOW()) AND NOT me.featured
+            AND (
+              b.reward_cents > me.reward_cents
+              OR (b.reward_cents = me.reward_cents AND b.created_at < me.created_at)
+              OR (b.reward_cents = me.reward_cents AND b.created_at = me.created_at AND b.id < me.id)
+            )
+          )
+        )`,
+    [bounty.reward_cents, bounty.created_at, bounty.id, featuredUntil],
   );
   return r.rows[0]?.rank ?? null;
 }

@@ -85,7 +85,7 @@ export default function CreateBountyForm({
     </section>
 
     <section className="launch-final">
-      <div><span>04</span><h2>Take a rank</h2><p>After checkout the bounty goes live. Only automatic payouts compete for #1. FirstCustomer also routes it to matching network members.</p></div>
+      <div><span>04</span><h2>Take a rank</h2><p>After checkout the bounty goes live. Only automatic payouts compete for #1. Hold #1 for 7 days from the company dashboard. FirstCustomer also routes it to matching network members.</p></div>
       {error && <div className="error">{error}</div>}
       <button className="button launch-button wide" disabled={loading || poolTooBig}>{loading ? "Opening checkout…" : "Pay " + launchFeeDollars.toLocaleString("en-US", { style: "currency", currency: "USD" }) + " and launch →"}</button>
       <small>No fake traffic. No fabricated payouts. You stay responsible for approving only customers that meet your published criteria.</small>

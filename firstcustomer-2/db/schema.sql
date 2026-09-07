@@ -44,6 +44,16 @@ ALTER TABLE bounties ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAU
 ALTER TABLE bounties ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE bounties ADD COLUMN IF NOT EXISTS stripe_payment_method_id TEXT;
 ALTER TABLE bounties ADD COLUMN IF NOT EXISTS creator_x_handle TEXT;
+ALTER TABLE bounties ADD COLUMN IF NOT EXISTS featured_until TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS stripe_checkout_events (
+  session_id TEXT PRIMARY KEY,
+  bounty_id UUID NOT NULL REFERENCES bounties(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_stripe_checkout_events_bounty ON stripe_checkout_events(bounty_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bounties_featured_until ON bounties(featured_until DESC) WHERE featured_until IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_bounties_slug ON bounties(slug);
 CREATE INDEX IF NOT EXISTS idx_bounties_status ON bounties(status);

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { isAdmin } from "@/lib/admin-auth";
 import { adminListCampaigns } from "@/lib/db";
 import { money, remaining } from "@/lib/format";
-import { isFunded } from "@/lib/market";
+import { isFunded, isHoldActive } from "@/lib/market";
 import { CampaignActions } from "@/components/AdminActions";
 import AdminListForm from "@/components/AdminListForm";
 
@@ -37,7 +37,7 @@ export default async function AdminCampaigns({ searchParams }: { searchParams: P
           <thead><tr><th>Company</th><th>Status</th><th>Reward</th><th>Left</th><th>Payout</th><th>Email</th><th></th></tr></thead>
           <tbody>
             {rows.length ? rows.map((row) => <tr key={row.id}>
-              <td><Link href={`/admin/campaigns/${row.id}`}><b>{row.company_name}</b></Link><div className="fineprint">{row.slug}{row.is_featured ? " · featured" : ""}</div></td>
+              <td><Link href={`/admin/campaigns/${row.id}`}><b>{row.company_name}</b></Link><div className="fineprint">{row.slug}{isHoldActive(row) ? " · hold #1" : row.is_featured ? " · featured" : ""}</div></td>
               <td><span className="status-pill">{row.status}</span></td>
               <td>{money(row.reward_cents)}</td>
               <td>{remaining(row.goal_count, row.approved_count)}</td>

@@ -36,7 +36,7 @@ export default async function Home() {
 
   return <main>
     <section className="board-top shell">
-      <p className="board-kicker">Highest funded bounty sits at #1</p>
+      <p className="board-kicker">Highest funded bounty sits at #1 · Hold it for $29</p>
       <h1>Pay for customers.<br />Not clicks.</h1>
       <p className="board-sub">Companies price a customer. People deliver it.</p>
       <QuickLaunch
@@ -73,7 +73,7 @@ export default async function Home() {
               <Link className="button launch-button" href="/create">List the first bounty →</Link>
             </div>}
       </div>
-      <p className="board-rule">Rank is funded demand. Manual listings cannot take #1. A payout enters the ledger only after Stripe confirms the transfer.</p>
+      <p className="board-rule">Rank is funded demand. Manual listings cannot take #1. Hold #1 for 7 days for $29. A payout enters the ledger only after Stripe confirms the transfer.</p>
     </section>
 
     <section className="split-boards shell">

@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       customer_creation: "always",
       payment_intent_data: { setup_future_usage: "off_session" },
       line_items: [{ quantity: 1, price_data: { currency: "usd", unit_amount: config.launchFeeCents, product_data: { name: "FirstCustomer Network launch", description: `Publish and distribute ${companyName}'s customer mission` } } }],
-      metadata: { bounty_id: id },
+      metadata: { bounty_id: id, kind: "launch" },
       success_url: `${origin}/launch/success?bounty=${id}&key=${encodeURIComponent(ownerKey)}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/create?cancelled=1`,
     });

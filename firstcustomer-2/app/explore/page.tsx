@@ -19,7 +19,7 @@ export default async function Explore({ searchParams }: { searchParams: Promise<
     <div className="market-title">
       <div>
         <span className="eyebrow">Board</span>
-        <h1>Highest funded bounty sits at #1.</h1>
+        <h1>Highest funded bounty sits at #1. Hold it for $29.</h1>
         <p>{stats.campaigns} live · {money(Number(stats.open_reward_cents))} funded pool · {stats.click_count} clicks</p>
       </div>
       <div className="market-title-actions">
