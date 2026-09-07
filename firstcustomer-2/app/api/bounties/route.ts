@@ -6,6 +6,7 @@ import { stripe } from "@/lib/stripe";
 import { requireEmail, requireHttpUrl, requireInt, requireString } from "@/lib/validation";
 import { config } from "@/lib/config";
 import { limitOrThrow } from "@/lib/rateLimit";
+import { publicOrigin } from "@/lib/origin";
 
 export const runtime = "nodejs";
 
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
       [slug, hashToken(ownerKey), hashToken(integrationKey), integrationKey.slice(0, 12), creatorEmail, companyName, productUrl, companyDescription, category, logo, headline, desiredAction, referralTerms, rewardDollars * 100, goalCount, payoutMode, config.launchFeeCents, config.platformFeeBps],
     );
     const id = inserted.rows[0].id;
-    const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+    const origin = publicOrigin(req);
 
     if (!process.env.STRIPE_SECRET_KEY) {
       await query("DELETE FROM bounties WHERE id=$1", [id]);

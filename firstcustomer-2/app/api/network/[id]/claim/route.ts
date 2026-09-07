@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { hashToken, randomToken, safeEqualHex } from "@/lib/security";
 import { referralCode } from "@/lib/slug";
+import { publicOrigin } from "@/lib/origin";
 
 export const runtime = "nodejs";
 
@@ -38,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const code = referral.rows[0]?.code;
     if (!code) throw new Error("Could not create referral link");
     await query("UPDATE campaign_matches SET status='claimed',claimed_at=COALESCE(claimed_at,NOW()) WHERE id=$1", [matchId]);
-    const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+    const origin = publicOrigin(req);
     return NextResponse.json({ shareUrl: `${origin}/b/${match.slug}?ref=${encodeURIComponent(code)}`, manageUrl: `${origin}/referrals/${encodeURIComponent(code)}?key=${encodeURIComponent(manageKey)}` });
   } catch (error) {
     console.error(error);

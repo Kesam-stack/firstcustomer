@@ -5,6 +5,7 @@ import { requireEmail, requireInt, requireString } from "@/lib/validation";
 import { cleanHandle } from "@/lib/format";
 import { matchMemberToCampaigns } from "@/lib/network";
 import { limitOrThrow } from "@/lib/rateLimit";
+import { publicOrigin } from "@/lib/origin";
 
 export const runtime = "nodejs";
 const allowedCategories = new Set(["All", "Software", "Artificial Intelligence", "Fintech", "Consumer", "Marketplace", "Professional Services", "Other"]);
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     );
     const id = inserted.rows[0].id;
     const matches = await matchMemberToCampaigns(id);
-    const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
+    const origin = publicOrigin(req);
     return NextResponse.json({ dashboardUrl: `${origin}/network/${id}?key=${encodeURIComponent(key)}`, matches: matches.length });
   } catch (error) {
     console.error(error);
