@@ -43,6 +43,15 @@ FirstCustomer is a performance-based customer acquisition marketplace. Companies
 
 ## Environment
 
+Admin (required to use `/admin`):
+
+```env
+FC_ADMIN_PASSWORD=choose-a-long-password
+FC_ADMIN_SECRET=a-separate-signing-secret
+```
+
+Then open `/admin`. There is no public link. The password must be at least 8 characters.
+
 Required for production:
 
 ```env

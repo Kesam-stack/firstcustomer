@@ -211,3 +211,109 @@ export async function networkMatchCount(bountyId: string) {
   const r = await query<{ count: number }>(`SELECT COUNT(*)::int count FROM campaign_matches WHERE bounty_id=$1`, [bountyId]);
   return r.rows[0]?.count ?? 0;
 }
+
+export async function adminOverview() {
+  const r = await query<{
+    campaigns: number;
+    active: number;
+    drafts: number;
+    paused: number;
+    closed: number;
+    referrals: number;
+    members: number;
+    conversions: number;
+    paid: number;
+    failed: number;
+    pending: number;
+    paid_cents: string;
+    launch_fees_cents: string;
+  }>(
+    `SELECT
+      (SELECT COUNT(*)::int FROM bounties) campaigns,
+      (SELECT COUNT(*)::int FROM bounties WHERE status='active') active,
+      (SELECT COUNT(*)::int FROM bounties WHERE status='draft') drafts,
+      (SELECT COUNT(*)::int FROM bounties WHERE status='paused') paused,
+      (SELECT COUNT(*)::int FROM bounties WHERE status='closed') closed,
+      (SELECT COUNT(*)::int FROM referrals) referrals,
+      (SELECT COUNT(*)::int FROM network_members) members,
+      (SELECT COUNT(*)::int FROM conversion_claims) conversions,
+      (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='paid') paid,
+      (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='failed') failed,
+      (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status IN ('payment_pending','processing','manual_due')) pending,
+      (SELECT COALESCE(SUM(reward_cents),0)::text FROM conversion_claims WHERE payout_status='paid') paid_cents,
+      (SELECT COALESCE(SUM(launch_fee_cents),0)::text FROM bounties WHERE payment_verified) launch_fees_cents`,
+  );
+  return r.rows[0];
+}
+
+export async function adminListCampaigns(status?: string, q?: string) {
+  const values: unknown[] = [];
+  const where: string[] = [];
+  if (status && ["draft", "active", "paused", "closed"].includes(status)) {
+    values.push(status);
+    where.push(`status=$${values.length}`);
+  }
+  if (q) {
+    values.push(`%${q}%`);
+    where.push(`(company_name ILIKE $${values.length} OR slug ILIKE $${values.length} OR creator_email ILIKE $${values.length})`);
+  }
+  const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const r = await query<Bounty & { click_count: number; referrer_count: number }>(
+    `SELECT ${bountySelect},
+            COALESCE((SELECT SUM(clicks)::int FROM referrals WHERE bounty_id=bounties.id),0) click_count,
+            COALESCE((SELECT COUNT(*)::int FROM referrals WHERE bounty_id=bounties.id),0) referrer_count
+       FROM bounties ${clause}
+      ORDER BY created_at DESC
+      LIMIT 200`,
+    values,
+  );
+  return r.rows;
+}
+
+export type AdminPayout = Conversion & { company_name: string; slug: string; payout_mode: string; bounty_id: string };
+
+export async function adminListPayouts(status?: string) {
+  const values: unknown[] = [];
+  let where = "";
+  if (status) {
+    values.push(status);
+    where = `WHERE c.payout_status=$${values.length}`;
+  }
+  const r = await query<AdminPayout>(
+    `SELECT c.id,c.referral_id,c.customer_reference,c.reward_cents,c.platform_fee_cents,c.status,c.payout_status,
+            c.stripe_transfer_id,c.payout_error,c.created_at::text,c.paid_at::text,r.x_handle,
+            b.company_name,b.slug,b.payout_mode,c.bounty_id
+       FROM conversion_claims c
+       JOIN referrals r ON r.id=c.referral_id
+       JOIN bounties b ON b.id=c.bounty_id
+       ${where}
+      ORDER BY c.created_at DESC
+      LIMIT 200`,
+    values,
+  );
+  return r.rows;
+}
+
+export type AdminReferral = Referral & { company_name: string; slug: string };
+
+export async function adminListReferrals() {
+  const r = await query<AdminReferral>(
+    `SELECT r.id,r.bounty_id,r.code,r.x_handle,r.contact_email,r.clicks,r.approved_conversions,r.earned_cents,r.paid_cents,
+            r.stripe_account_id,r.payouts_enabled,r.created_at::text,b.company_name,b.slug
+       FROM referrals r
+       JOIN bounties b ON b.id=r.bounty_id
+      ORDER BY r.created_at DESC
+      LIMIT 200`,
+  );
+  return r.rows;
+}
+
+export async function adminListMembers() {
+  const r = await query<NetworkMember>(
+    `SELECT id,email,x_handle,display_name,bio,categories,channels,audience_size,country,email_alerts,status,created_at::text
+       FROM network_members
+      ORDER BY created_at DESC
+      LIMIT 200`,
+  );
+  return r.rows;
+}

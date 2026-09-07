@@ -269,6 +269,26 @@ th{font-family:var(--mono);font-size:11px;text-transform:uppercase;color:var(--i
 .success-mark{width:44px;height:44px;border:1px solid var(--success);color:var(--success);display:grid;place-items:center;margin:0 auto 20px}
 .center-page h1{font-size:44px;letter-spacing:-.03em}
 .legal{line-height:1.7}
+body:has(.admin-app) .site-header,
+body:has(.admin-app) .site-footer{display:none}
+.admin-app{min-height:100vh}
+.admin-header{position:sticky;top:0;z-index:40;border-bottom:1px solid var(--ink);background:rgba(244,241,234,.94);backdrop-filter:blur(10px)}
+.admin-login{max-width:420px;margin:8vh auto 0}
+.admin-login h1{margin:12px 0 22px}
+.admin-login .launch-console{border-top:1px solid var(--ink);padding-top:22px}
+.admin-login .button{margin-top:12px}
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ink);margin-top:28px}
+.admin-stat{padding:22px 18px;border-bottom:1px solid var(--ink);border-right:1px solid var(--ink)}
+.admin-stat:nth-child(2n){border-right:0}
+.admin-stat span{display:block;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.admin-stat strong{display:block;font-family:var(--mono);font-size:32px;font-weight:500}
+.admin-stat small{display:block;margin-top:8px;color:var(--muted);font-size:12px}
+.admin-filters{display:flex;gap:8px;margin:0 0 24px;flex-wrap:wrap}
+.admin-filters input,.admin-filters select{border:1px solid var(--ink);background:var(--white);padding:11px 12px;min-width:160px;flex:1}
+@media(max-width:760px){
+  .admin-grid{grid-template-columns:1fr}
+  .admin-stat,.admin-stat:nth-child(2n){border-right:0}
+}
 
 /* Production class names still used on Railway until the next deploy */
 .hero-copy>p{color:#1f1e1b}
