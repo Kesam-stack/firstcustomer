@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Bounty, Referral, Conversion } from "@/lib/types";
 import { money } from "@/lib/format";
 import { isHoldActive } from "@/lib/market";
+import { siteUrl } from "@/lib/site";
 
 export default function FounderDashboard({
   bounty,
@@ -34,7 +35,7 @@ export default function FounderDashboard({
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState(integrationKey || "");
-  const publicUrl = `${typeof window !== "undefined" ? location.origin : ""}/b/${bounty.slug}`;
+  const publicUrl = siteUrl(`/b/${bounty.slug}`);
   const holding = isHoldActive(bounty);
   const holdUntil = holding && bounty.featured_until
     ? new Date(bounty.featured_until).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })

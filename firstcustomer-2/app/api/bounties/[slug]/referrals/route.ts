@@ -5,6 +5,7 @@ import { referralCode } from "@/lib/slug";
 import { randomToken, hashToken } from "@/lib/security";
 import { limitOrThrow } from "@/lib/rateLimit";
 import { publicOrigin } from "@/lib/origin";
+import { siteUrl } from "@/lib/site";
 import { optionalXPostUrl } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -51,7 +52,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     if (!code) throw new Error("Could not create referral");
     const origin = publicOrigin(req);
     return NextResponse.json({
-      shareUrl: `${origin}/b/${bounty.slug}?ref=${encodeURIComponent(code)}`,
+      shareUrl: siteUrl(`/b/${bounty.slug}?ref=${encodeURIComponent(code)}`),
       manageUrl: `${origin}/referrals/${encodeURIComponent(code)}?key=${encodeURIComponent(manageKey)}`,
     });
   } catch (error) {
