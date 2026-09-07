@@ -5,6 +5,7 @@ import { adminListCampaigns } from "@/lib/db";
 import { money, remaining } from "@/lib/format";
 import { isFunded } from "@/lib/market";
 import { CampaignActions } from "@/components/AdminActions";
+import AdminListForm from "@/components/AdminListForm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function AdminCampaigns({ searchParams }: { searchParams: P
       <span className="eyebrow">Campaigns</span>
       <h1>Every listing.</h1>
     </div>
+    <AdminListForm />
     <form className="admin-filters" method="get">
       <input name="q" defaultValue={q} placeholder="Search company, slug, email" />
       <select name="status" defaultValue={status}>

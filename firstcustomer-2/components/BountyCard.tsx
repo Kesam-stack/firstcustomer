@@ -21,6 +21,6 @@ export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: nu
     <div className="market-number"><span>Pool</span><strong>{money(pool)}</strong></div>
     <div className="market-number"><span>Left</span><strong>{left}</strong></div>
     <div className="market-number"><span>Clicks</span><strong>{clicks}</strong></div>
-    <div className="market-status">{funded ? <span className="status-verified">Funded</span> : bounty.payment_verified ? <span>Manual</span> : <span>Pending</span>}<small>{funded ? "Auto payout" : "Cannot take #1"}</small></div>
+    <div className="market-status">{funded ? <span className="status-verified">{bounty.launch_fee_cents === 0 ? "Live" : "Funded"}</span> : bounty.payment_verified ? <span>Manual</span> : <span>Pending</span>}<small>{funded ? (bounty.launch_fee_cents === 0 ? "Fee waived" : "Auto payout") : "Cannot take #1"}</small></div>
   </Link>;
 }

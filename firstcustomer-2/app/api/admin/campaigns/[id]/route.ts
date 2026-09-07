@@ -17,8 +17,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (action === "status") {
     const status = String(body.status || "");
     if (!statuses.has(status)) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    if (status === "active" && !bounty.payment_verified) {
+    if (status === "active" && !bounty.payment_verified && bounty.launch_fee_cents > 0) {
       return NextResponse.json({ error: "Cannot activate an unpaid campaign." }, { status: 400 });
+    }
+    if (status === "active" && bounty.launch_fee_cents === 0) {
+      await query("UPDATE bounties SET status='active', payment_verified=TRUE, activated_at=COALESCE(activated_at,NOW()) WHERE id=$1", [id]);
+      return NextResponse.json({ ok: true, status: "active" });
     }
     await query("UPDATE bounties SET status=$2 WHERE id=$1", [id, status]);
     return NextResponse.json({ ok: true, status });
