@@ -19,7 +19,7 @@ FirstCustomer is an early marketplace. Automatic payouts move real money.
 - Self-referrals by founder email are rejected.
 - Preview bots do not increment public click counts.
 - Mutation endpoints have basic per-IP rate limits.
-- Admin is a password session at `/admin` (`FC_ADMIN_PASSWORD` + `FC_ADMIN_SECRET`). It is not linked from the public site.
+- Admin is a username/password session at `/admin` (`FC_ADMIN_USERNAME`, `FC_ADMIN_PASSWORD_HASH`, `FC_ADMIN_SESSION_SECRET`). It is not linked from the public site.
 
 ## Still required before scale
 

@@ -10,19 +10,23 @@ export default async function AdminLogin({ searchParams }: { searchParams: Promi
     : error === "config"
       ? "Admin login is not configured."
       : error === "1"
-        ? "Wrong password."
+        ? "Wrong username or password."
         : "";
 
   return <main className="narrow page-pad">
     <div className="admin-login">
       <span className="eyebrow">FirstCustomer</span>
       <h1>Admin</h1>
-      {!configured && <div className="warning">Set <code>FC_ADMIN_PASSWORD</code> (at least 8 characters) and preferably <code>FC_ADMIN_SECRET</code> on Railway, then redeploy.</div>}
+      {!configured && <div className="warning">Set <code>FC_ADMIN_USERNAME</code>, <code>FC_ADMIN_PASSWORD_HASH</code>, and <code>FC_ADMIN_SESSION_SECRET</code> on Railway, then redeploy.</div>}
       {message && <div className="error">{message}</div>}
       <form className="launch-console" action="/api/admin/login" method="post">
         <label>
+          Username
+          <input name="username" required autoComplete="username" disabled={!configured} />
+        </label>
+        <label>
           Password
-          <input name="password" type="password" required minLength={8} autoComplete="current-password" disabled={!configured} />
+          <input name="password" type="password" required autoComplete="current-password" disabled={!configured} />
         </label>
         <button className="button launch-button full" disabled={!configured}>Sign in →</button>
       </form>

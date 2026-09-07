@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ADMIN_COOKIE, adminConfigured, adminCookieOptions, signAdminSession, verifyAdminPassword } from "@/lib/admin-auth";
+import { ADMIN_COOKIE, adminConfigured, adminCookieOptions, signAdminSession, verifyAdminLogin } from "@/lib/admin-auth";
 import { limitOrThrow } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
@@ -12,8 +12,9 @@ export async function POST(req: Request) {
       return NextResponse.redirect(`${origin}/admin/login?error=config`, 303);
     }
     const form = await req.formData();
+    const username = String(form.get("username") || "");
     const password = String(form.get("password") || "");
-    if (!verifyAdminPassword(password)) {
+    if (!await verifyAdminLogin(username, password)) {
       return NextResponse.redirect(`${origin}/admin/login?error=1`, 303);
     }
     const res = NextResponse.redirect(`${origin}/admin`, 303);

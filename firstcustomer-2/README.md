@@ -46,11 +46,14 @@ FirstCustomer is a performance-based customer acquisition marketplace. Companies
 Admin (required to use `/admin`):
 
 ```env
-FC_ADMIN_PASSWORD=choose-a-long-password
-FC_ADMIN_SECRET=a-separate-signing-secret
+FC_ADMIN_USERNAME=your-username
+FC_ADMIN_PASSWORD_HASH=bcrypt-or-sha256-hex
+FC_ADMIN_SESSION_SECRET=a-long-random-string
 ```
 
-Then open `/admin`. There is no public link. The password must be at least 8 characters.
+Then open `/admin` and sign in with that username and the original password (not the hash). There is no public link.
+
+Supported hash formats: bcrypt (`$2a$` / `$2b$` / `$2y$`), SHA-256 hex, SHA-512 hex.
 
 Required for production:
 
