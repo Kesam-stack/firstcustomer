@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { hashToken, randomToken, safeEqualHex } from "@/lib/security";
 import { referralCode } from "@/lib/slug";
-import { publicOrigin } from "@/lib/origin";
 import { siteUrl } from "@/lib/site";
 
 export const runtime = "nodejs";
@@ -40,8 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const code = referral.rows[0]?.code;
     if (!code) throw new Error("Could not create referral link");
     await query("UPDATE campaign_matches SET status='claimed',claimed_at=COALESCE(claimed_at,NOW()) WHERE id=$1", [matchId]);
-    const origin = publicOrigin(req);
-    return NextResponse.json({ shareUrl: siteUrl(`/b/${match.slug}?ref=${encodeURIComponent(code)}`), manageUrl: `${origin}/referrals/${encodeURIComponent(code)}?key=${encodeURIComponent(manageKey)}` });
+    return NextResponse.json({ shareUrl: siteUrl(`/b/${match.slug}?ref=${encodeURIComponent(code)}`), manageUrl: siteUrl(`/referrals/${encodeURIComponent(code)}?key=${encodeURIComponent(manageKey)}`) });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not claim mission" }, { status: 400 });

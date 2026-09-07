@@ -5,7 +5,7 @@ import { requireEmail, requireInt, requireString } from "@/lib/validation";
 import { cleanHandle } from "@/lib/format";
 import { matchMemberToCampaigns } from "@/lib/network";
 import { limitOrThrow } from "@/lib/rateLimit";
-import { publicOrigin } from "@/lib/origin";
+import { siteUrl } from "@/lib/site";
 
 export const runtime = "nodejs";
 const allowedCategories = new Set(["All", "Software", "Artificial Intelligence", "Fintech", "Consumer", "Marketplace", "Professional Services", "Other"]);
@@ -37,8 +37,7 @@ export async function POST(req: Request) {
     );
     const id = inserted.rows[0].id;
     const matches = await matchMemberToCampaigns(id);
-    const origin = publicOrigin(req);
-    return NextResponse.json({ dashboardUrl: `${origin}/network/${id}?key=${encodeURIComponent(key)}`, matches: matches.length });
+    return NextResponse.json({ dashboardUrl: siteUrl(`/network/${id}?key=${encodeURIComponent(key)}`), matches: matches.length });
   } catch (error) {
     console.error(error);
     const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: number }).status) : 400;
