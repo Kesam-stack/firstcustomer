@@ -23,7 +23,7 @@ export default async function Home() {
 
   try {
     [bounties, payouts, rainmakers, stats, ledger] = await Promise.all([
-      listMarketplaceBounties(12, "All", "reward"),
+      listMarketplaceBounties(8, "All", "reward"),
       listPublicPayouts(6),
       listRainmakers(6),
       marketplaceStats(),
@@ -31,35 +31,54 @@ export default async function Home() {
     ]);
   } catch {}
 
-  const takeFirst = Number(stats.highest_reward_cents) > 0
-    ? money(Number(stats.highest_reward_cents))
-    : "yours";
+  const successFee = config.platformFeeBps / 100;
 
   return <main>
     <section className="board-top shell">
-      <p className="board-kicker">Highest funded bounty sits at #1 · Hold it for $29</p>
-      <h1>Pay for customers.<br />Not clicks.</h1>
-      <p className="board-sub">Companies price a customer. People deliver it.</p>
-      <QuickLaunch
-        minimumRewardDollars={config.minimumRewardCents / 100}
-        maximumRewardDollars={config.maximumRewardCents / 100}
-        maximumGoalCount={config.maximumGoalCount}
-      />
+      <p className="board-kicker">Customer acquisition market</p>
+      <div className="home-hero-grid">
+        <div className="home-hero-copy">
+          <h1>Pay for customers.<br />Not clicks.</h1>
+          <p className="board-sub">Companies publish the exact customer outcome they want and the reward they will pay. People bring qualified customers. FirstCustomer tracks attribution and records the payout.</p>
+          <div className="hero-role-actions">
+            <Link className="button launch-button" href="/create">I need customers →</Link>
+            <Link className="button secondary" href="/explore">I want to earn →</Link>
+          </div>
+        </div>
+        <div className="hero-flow" aria-label="How FirstCustomer works">
+          <span>01 Company sets outcome</span>
+          <span>02 Referrer claims mission</span>
+          <span>03 Customer is verified</span>
+          <span>04 Reward is paid</span>
+        </div>
+      </div>
+
+      <div className="home-launch">
+        <div className="home-launch-head">
+          <div><span>Launch a mission</span><strong>Price the customer you actually want.</strong></div>
+          <p>{money(config.launchFeeCents)} launch · {successFee}% success fee · no monthly plan</p>
+        </div>
+        <QuickLaunch
+          minimumRewardDollars={config.minimumRewardCents / 100}
+          maximumRewardDollars={config.maximumRewardCents / 100}
+          maximumGoalCount={config.maximumGoalCount}
+        />
+      </div>
     </section>
 
     <section className="board-meta">
       <div className="shell ticker-inner">
-        <div><span>Funded pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
-        <div><span>Live listings</span><strong>{stats.campaigns}</strong></div>
-        <div><span>Take #1</span><strong>{takeFirst}</strong></div>
-        <div><span>Paid through ledger</span><strong><CountUp cents={Number(ledger.total_paid_cents)} /></strong></div>
+        <div><span>Open reward pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
+        <div><span>Live missions</span><strong>{stats.campaigns}</strong></div>
+        <div><span>Network members</span><strong>{stats.network_members}</strong></div>
+        <div><span>Verified rewards paid</span><strong><CountUp cents={Number(ledger.total_paid_cents)} /></strong></div>
       </div>
     </section>
 
     <section className="board-section shell">
       <div className="section-bar">
-        <div><span>Board</span><h2>Live demand</h2></div>
-        <Link href="/explore">Full market</Link>
+        <div><span>Market</span><h2>Live customer missions</h2></div>
+        <Link href="/explore">See all missions</Link>
       </div>
       <div className="board-head">
         <span>#</span><span>Company</span><span>Customer</span><span>Reward</span><span>Pool</span><span>Left</span><span>Clicks</span><span>Claims</span><span>Status</span>
@@ -68,36 +87,49 @@ export default async function Home() {
         {bounties.length
           ? rankFunded(bounties).map(({ row, rank }) => <BountyCard bounty={row} rank={rank} key={row.id} />)
           : <div className="board-empty">
-              <span>The board is open</span>
-              <strong>First funded listing takes #1.</strong>
-              <p>We do not invent demand. Only automatic-payout campaigns compete for rank.</p>
-              <Link className="button launch-button" href="/create">List the first bounty →</Link>
+              <span>The market is open</span>
+              <strong>First funded mission takes #1.</strong>
+              <p>No seeded campaigns and no fake demand. The first real company to fund a customer mission becomes the market.</p>
+              <Link className="button launch-button" href="/create">Post the first mission →</Link>
             </div>}
       </div>
-      <p className="board-rule">Rank is funded demand. Manual listings cannot take #1. Hold #1 for 7 days for $29. Approved rewards settle after a {config.payoutDelayDays}-day hold. A payout enters the ledger only after Stripe confirms the transfer.</p>
+      <p className="board-rule">The board ranks funded automatic-payout demand. A reward appears in the public ledger only after FirstCustomer records the Stripe transfer as paid.</p>
     </section>
 
     <section className="split-boards shell">
       <div>
-        <div className="section-bar"><div><span>Tape</span><h2>Public ledger</h2></div><Link href="/ledger">Open ledger</Link></div>
+        <div className="section-bar"><div><span>Proof</span><h2>Recent payouts</h2></div><Link href="/ledger">Public ledger</Link></div>
         <div className="proof-table compact">
           {payouts.length
-            ? payouts.map((payout, index) => <LedgerRow compact payout={payout} key={`${payout.paid_at}-${index}`} />)
-            : <div className="empty-ledger">Awaiting first settlement. No fake transactions.</div>}
+            ? payouts.map((payout) => <LedgerRow compact payout={payout} key={payout.id} />)
+            : <div className="empty-ledger">Awaiting the first verified payout. We do not manufacture proof.</div>}
         </div>
       </div>
       <div>
         <div className="section-bar"><div><span>People</span><h2>Rainmakers</h2></div><Link href="/leaderboard">Leaderboard</Link></div>
         <div className="ledger-table">
           <div className="ledger-head rainmaker-head"><span>#</span><span>Handle</span><span>Customers</span><span>Paid</span></div>
-          {rainmakers.length ? rainmakers.map((person, index) => <div className="ledger-row rainmaker-row" key={person.x_handle}>
+          {rainmakers.length ? rainmakers.map((person, index) => <div className="ledger-row rainmaker-row" key={person.identity_id || person.x_handle}>
             <span className={index === 0 ? "board-rank top" : "board-rank"}>{String(index + 1).padStart(2, "0")}</span>
             {person.identity_id ? <Link href={`/people/${person.identity_id}`}>@{person.x_handle}</Link> : <span>@{person.x_handle}</span>}
             <span>{person.approved}</span>
             <strong>{money(person.paid_cents)}</strong>
-          </div>) : <div className="empty-ledger">Rainmakers appear after {config.rainmakerThreshold} approved customers. Reputation is earned, not assigned.</div>}
+          </div>) : <div className="empty-ledger">Rainmaker status starts after {config.rainmakerThreshold} approved customers. It cannot be purchased.</div>}
         </div>
       </div>
+    </section>
+
+    <section className="home-close shell">
+      <Link href="/create" className="home-close-card">
+        <span>For companies</span>
+        <strong>Put a price on a qualified customer.</strong>
+        <em>Launch a mission →</em>
+      </Link>
+      <Link href="/explore" className="home-close-card">
+        <span>For referrers</span>
+        <strong>Find a customer. Earn the reward.</strong>
+        <em>Browse live missions →</em>
+      </Link>
     </section>
   </main>;
 }
