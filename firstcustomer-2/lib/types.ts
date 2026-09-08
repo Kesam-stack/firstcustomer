@@ -65,6 +65,9 @@ export type Conversion = {
   platform_fee_cents: number;
   status: "pending" | "approved" | "rejected";
   payout_status: PayoutStatus;
+  fraud_status: "clear" | "review" | "blocked";
+  fraud_score: number;
+  fraud_reasons: string[];
   stripe_transfer_id: string | null;
   payout_error: string | null;
   created_at: string;
