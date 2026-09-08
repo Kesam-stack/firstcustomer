@@ -87,12 +87,12 @@ export default async function Home() {
         </div>
       </div>
       <div>
-        <div className="section-bar"><div><span>People</span><h2>Rainmakers</h2></div><Link href="/network">Earn</Link></div>
+        <div className="section-bar"><div><span>People</span><h2>Rainmakers</h2></div><Link href="/leaderboard">Leaderboard</Link></div>
         <div className="ledger-table">
           <div className="ledger-head rainmaker-head"><span>#</span><span>Handle</span><span>Customers</span><span>Paid</span></div>
           {rainmakers.length ? rainmakers.map((person, index) => <div className="ledger-row rainmaker-row" key={person.x_handle}>
             <span className={index === 0 ? "board-rank top" : "board-rank"}>{String(index + 1).padStart(2, "0")}</span>
-            <span>@{person.x_handle}</span>
+            {person.identity_id ? <Link href={`/people/${person.identity_id}`}>@{person.x_handle}</Link> : <span>@{person.x_handle}</span>}
             <span>{person.approved}</span>
             <strong>{money(person.paid_cents)}</strong>
           </div>) : <div className="empty-ledger">Rainmakers appear after {config.rainmakerThreshold} approved customers. Reputation is earned, not assigned.</div>}
