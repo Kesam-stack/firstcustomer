@@ -20,7 +20,7 @@ export default async function Page({params,searchParams}:{params:Promise<{code:s
     try{
       const {stripe}=await import("@/lib/stripe");
       const a=await stripe().accounts.retrieve(r.stripe_account_id);
-      const enabled=Boolean(a.payouts_enabled&&a.charges_enabled!==false);
+      const enabled=Boolean(a.payouts_enabled);
       if(enabled!==r.payouts_enabled){
         await query("UPDATE referrals SET payouts_enabled=$2 WHERE id=$1",[r.id,enabled]);
         r={...r,payouts_enabled:enabled};
