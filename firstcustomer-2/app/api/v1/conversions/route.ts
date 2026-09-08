@@ -20,8 +20,8 @@ export async function POST(req: Request) {
     const customer = requireString(body.customer_reference, "Customer reference", 180);
     const eventId = requireString(body.event_id, "Event ID", 180);
 
-    const b = await query<{ id: string; creator_email: string; integration_secret_hash: string | null }>(
-      "SELECT id,creator_email,integration_secret_hash FROM bounties WHERE slug=$1",
+    const b = await query<{ id: string; creator_email: string; product_url: string; integration_secret_hash: string | null }>(
+      "SELECT id,creator_email,product_url,integration_secret_hash FROM bounties WHERE slug=$1",
       [slug],
     );
     const bounty = b.rows[0];
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Self-referrals are not eligible for a payout." }, { status: 409 });
     }
 
-    const companyHash = companyIdentityFingerprint(bounty.creator_email);
+    const companyHash = companyIdentityFingerprint(bounty.creator_email, bounty.product_url);
     const customerFingerprint = customerIdentityFingerprint(companyHash, customer);
 
     const c = await query<{ id: string; status: string; fraud_status: string }>(
