@@ -509,3 +509,6 @@ body:has(.admin-app) .site-footer{display:none}
   .hero-flow span:nth-child(odd){border-right:0}
   .hero-flow span:nth-child(3){border-bottom:1px solid var(--line)}
 }
+
+.network-live-stat small{display:flex;align-items:center;gap:6px;margin-top:7px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.network-live-stat small i{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(18,107,58,.12);flex:0 0 auto}

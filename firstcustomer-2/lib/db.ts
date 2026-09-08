@@ -79,15 +79,16 @@ export async function listMarketplaceBounties(limit = 12, category?: string, sor
 const fundedLive = `status='active' AND approved_count<goal_count AND payment_verified AND payout_mode='stripe'`;
 
 export async function marketplaceStats() {
-  const r = await query<{ campaigns: number; open_reward_cents: string; network_members: number; highest_reward_cents: string; click_count: number }>(
+  const r = await query<{ campaigns: number; open_reward_cents: string; network_members: number; active_recently: number; highest_reward_cents: string; click_count: number }>(
     `SELECT
        (SELECT COUNT(*)::int FROM bounties WHERE status='active' AND approved_count<goal_count) campaigns,
        (SELECT COALESCE(SUM((goal_count-approved_count)*reward_cents),0)::text FROM bounties WHERE ${fundedLive}) open_reward_cents,
        (SELECT COUNT(*)::int FROM network_members WHERE status='active') network_members,
+       (SELECT COUNT(*)::int FROM network_members WHERE status='active' AND last_seen_at IS NOT NULL AND last_seen_at > NOW() - INTERVAL '15 minutes') active_recently,
        (SELECT COALESCE(MAX(reward_cents),0)::text FROM bounties WHERE ${fundedLive}) highest_reward_cents,
        (SELECT COALESCE(SUM(r.clicks),0)::int FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE b.status='active' AND b.approved_count<b.goal_count) click_count`,
   );
-  return r.rows[0] ?? { campaigns: 0, open_reward_cents: "0", network_members: 0, highest_reward_cents: "0", click_count: 0 };
+  return r.rows[0] ?? { campaigns: 0, open_reward_cents: "0", network_members: 0, active_recently: 0, highest_reward_cents: "0", click_count: 0 };
 }
 
 export async function getBountyRank(bounty: Bounty): Promise<number | null> {
