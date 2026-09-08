@@ -243,3 +243,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_conversion_unique_transfer
 CREATE INDEX IF NOT EXISTS idx_conversion_fraud_review
   ON conversion_claims(fraud_status, created_at DESC)
   WHERE fraud_status <> 'clear';
+
+
+-- Privacy-preserving first-party product analytics.
+CREATE TABLE IF NOT EXISTS analytics_events (
+  id BIGSERIAL PRIMARY KEY,
+  event_type TEXT NOT NULL DEFAULT 'page_view',
+  path TEXT NOT NULL,
+  visitor_hash TEXT NOT NULL,
+  session_hash TEXT NOT NULL,
+  referrer_host TEXT,
+  referrer_path TEXT,
+  utm_source TEXT,
+  utm_medium TEXT,
+  utm_campaign TEXT,
+  device_type TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_events_created
+  ON analytics_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_path_created
+  ON analytics_events(path,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_visitor_created
+  ON analytics_events(visitor_hash,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_session_created
+  ON analytics_events(session_hash,created_at DESC);
