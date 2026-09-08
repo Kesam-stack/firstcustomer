@@ -23,6 +23,8 @@ export function cleanAnalyticsPath(value: unknown) {
   if (!raw || !raw.startsWith("/")) return "/";
   const path = raw.split("?")[0].split("#")[0].slice(0, 240);
   if (path.startsWith("/admin") || path.startsWith("/api")) return null;
+  if (path.startsWith("/manage/") || path.startsWith("/referrals/")) return null;
+  if (/^\/network\/[0-9a-f-]{30,}$/i.test(path)) return null;
   return path || "/";
 }
 
