@@ -141,14 +141,34 @@ export async function bountyTraffic(bountyId: string) {
 
 export async function listRainmakers(limit = 8): Promise<Rainmaker[]> {
   const r = await query<Rainmaker>(
-    `SELECT MIN(x_handle) x_handle,
-            SUM(approved_conversions)::int approved,
-            SUM(paid_cents)::int paid_cents,
-            SUM(earned_cents)::int earned_cents
-       FROM referrals
-      GROUP BY COALESCE(identity_id::text,'legacy:' || lower(x_handle))
-     HAVING SUM(approved_conversions) >= $1
-      ORDER BY SUM(paid_cents) DESC, SUM(approved_conversions) DESC
+    `WITH referral_stats AS (
+       SELECT COALESCE(identity_id::text,'legacy:' || lower(x_handle)) group_key,
+              MAX(identity_id::text)::uuid identity_id,
+              (ARRAY_AGG(x_handle ORDER BY created_at DESC))[1] x_handle,
+              SUM(approved_conversions)::int approved,
+              SUM(earned_cents)::int earned_cents
+         FROM referrals
+        GROUP BY COALESCE(identity_id::text,'legacy:' || lower(x_handle))
+     ),
+     paid_stats AS (
+       SELECT COALESCE(r.identity_id::text,'legacy:' || lower(r.x_handle)) group_key,
+              COALESCE(SUM(c.reward_cents),0)::int paid_cents
+         FROM conversion_claims c
+         JOIN referrals r ON r.id=c.referral_id
+        WHERE c.payout_status='paid'
+          AND c.paid_at IS NOT NULL
+          AND c.stripe_transfer_id IS NOT NULL
+        GROUP BY COALESCE(r.identity_id::text,'legacy:' || lower(r.x_handle))
+     )
+     SELECT rs.identity_id,
+            rs.x_handle,
+            rs.approved,
+            COALESCE(ps.paid_cents,0)::int paid_cents,
+            rs.earned_cents
+       FROM referral_stats rs
+       LEFT JOIN paid_stats ps ON ps.group_key=rs.group_key
+      WHERE rs.approved >= $1
+      ORDER BY COALESCE(ps.paid_cents,0) DESC,rs.approved DESC
       LIMIT $2`,
     [config.rainmakerThreshold, limit],
   );
@@ -156,6 +176,8 @@ export async function listRainmakers(limit = 8): Promise<Rainmaker[]> {
 }
 
 export type PublicPayout = {
+  id: string;
+  identity_id: string | null;
   paid_at: string;
   reward_cents: number;
   company_name: string;
@@ -176,7 +198,9 @@ export async function listPublicPayouts(limit = 12, q?: string): Promise<PublicP
     search = ` AND (b.company_name ILIKE $3 OR b.headline ILIKE $3 OR r.x_handle ILIKE $3 OR COALESCE(b.creator_x_handle,'') ILIKE $3)`;
   }
   const r = await query<PublicPayout>(
-    `SELECT c.paid_at::text,
+    `SELECT c.id,
+            r.identity_id,
+            c.paid_at::text,
             c.reward_cents,
             b.company_name,
             b.slug,
@@ -199,12 +223,208 @@ export async function listPublicPayouts(limit = 12, q?: string): Promise<PublicP
        FROM conversion_claims c
        JOIN bounties b ON b.id=c.bounty_id
        JOIN referrals r ON r.id=c.referral_id
-      WHERE c.payout_status='paid' AND c.paid_at IS NOT NULL${search}
+      WHERE c.payout_status='paid' AND c.paid_at IS NOT NULL AND c.stripe_transfer_id IS NOT NULL${search}
       ORDER BY c.paid_at DESC
       LIMIT $1`,
     values,
   );
   return r.rows;
+}
+
+
+export type LeaderboardEntry = {
+  identity_id: string;
+  x_handle: string;
+  approved: number;
+  paid_customers: number;
+  paid_cents: number;
+  campaigns_paid: number;
+  last_paid_at: string;
+  rainmaker: boolean;
+};
+
+export async function listLeaderboard(limit = 100): Promise<LeaderboardEntry[]> {
+  const r = await query<LeaderboardEntry>(
+    `WITH referral_stats AS (
+       SELECT identity_id,
+              (ARRAY_AGG(x_handle ORDER BY created_at DESC))[1] x_handle,
+              SUM(approved_conversions)::int approved
+         FROM referrals
+        WHERE identity_id IS NOT NULL
+        GROUP BY identity_id
+     ),
+     paid_stats AS (
+       SELECT r.identity_id,
+              COUNT(*)::int paid_customers,
+              COALESCE(SUM(c.reward_cents),0)::int paid_cents,
+              COUNT(DISTINCT c.bounty_id)::int campaigns_paid,
+              MAX(c.paid_at)::text last_paid_at
+         FROM conversion_claims c
+         JOIN referrals r ON r.id=c.referral_id
+        WHERE c.payout_status='paid'
+          AND c.paid_at IS NOT NULL
+          AND c.stripe_transfer_id IS NOT NULL
+          AND r.identity_id IS NOT NULL
+        GROUP BY r.identity_id
+     )
+     SELECT rs.identity_id,
+            rs.x_handle,
+            rs.approved,
+            ps.paid_customers,
+            ps.paid_cents,
+            ps.campaigns_paid,
+            ps.last_paid_at,
+            rs.approved >= $2 rainmaker
+       FROM referral_stats rs
+       JOIN paid_stats ps ON ps.identity_id=rs.identity_id
+      ORDER BY ps.paid_cents DESC, ps.paid_customers DESC, rs.approved DESC, ps.last_paid_at ASC
+      LIMIT $1`,
+    [limit, config.rainmakerThreshold],
+  );
+  return r.rows;
+}
+
+export type PublicReferrerProfile = {
+  identity_id: string;
+  x_handle: string;
+  approved: number;
+  clicks: number;
+  earned_cents: number;
+  paid_cents: number;
+  paid_customers: number;
+  campaigns_paid: number;
+  first_seen_at: string;
+  last_paid_at: string | null;
+  rainmaker: boolean;
+};
+
+export async function getPublicReferrerProfile(identityId: string): Promise<PublicReferrerProfile | null> {
+  const r = await query<PublicReferrerProfile>(
+    `WITH referral_stats AS (
+       SELECT identity_id,
+              (ARRAY_AGG(x_handle ORDER BY created_at DESC))[1] x_handle,
+              SUM(approved_conversions)::int approved,
+              SUM(clicks)::int clicks,
+              SUM(earned_cents)::int earned_cents,
+              MIN(created_at)::text first_seen_at
+         FROM referrals
+        WHERE identity_id=$1::uuid
+        GROUP BY identity_id
+     ),
+     paid_stats AS (
+       SELECT r.identity_id,
+              COUNT(*)::int paid_customers,
+              COALESCE(SUM(c.reward_cents),0)::int paid_cents,
+              COUNT(DISTINCT c.bounty_id)::int campaigns_paid,
+              MAX(c.paid_at)::text last_paid_at
+         FROM conversion_claims c
+         JOIN referrals r ON r.id=c.referral_id
+        WHERE r.identity_id=$1::uuid
+          AND c.payout_status='paid'
+          AND c.paid_at IS NOT NULL
+          AND c.stripe_transfer_id IS NOT NULL
+        GROUP BY r.identity_id
+     )
+     SELECT rs.identity_id,
+            rs.x_handle,
+            rs.approved,
+            rs.clicks,
+            rs.earned_cents,
+            COALESCE(ps.paid_cents,0)::int paid_cents,
+            COALESCE(ps.paid_customers,0)::int paid_customers,
+            COALESCE(ps.campaigns_paid,0)::int campaigns_paid,
+            rs.first_seen_at,
+            ps.last_paid_at,
+            rs.approved >= $2 rainmaker
+       FROM referral_stats rs
+       LEFT JOIN paid_stats ps ON ps.identity_id=rs.identity_id
+      LIMIT 1`,
+    [identityId, config.rainmakerThreshold],
+  );
+  return r.rows[0] ?? null;
+}
+
+export async function listPublicPayoutsByIdentity(identityId: string, limit = 20): Promise<PublicPayout[]> {
+  const r = await query<PublicPayout>(
+    `SELECT c.id,
+            r.identity_id,
+            c.paid_at::text,
+            c.reward_cents,
+            b.company_name,
+            b.slug,
+            b.headline,
+            b.creator_x_handle,
+            r.x_handle,
+            r.source_post_url,
+            COALESCE((SELECT SUM(r2.approved_conversions)::int FROM referrals r2 WHERE r2.identity_id=r.identity_id),0) total_approved,
+            COALESCE((SELECT SUM(r3.approved_conversions) FROM referrals r3 WHERE r3.identity_id=r.identity_id),0) >= $3 rainmaker
+       FROM conversion_claims c
+       JOIN bounties b ON b.id=c.bounty_id
+       JOIN referrals r ON r.id=c.referral_id
+      WHERE c.payout_status='paid'
+        AND c.paid_at IS NOT NULL
+        AND c.stripe_transfer_id IS NOT NULL
+        AND r.identity_id=$1::uuid
+      ORDER BY c.paid_at DESC
+      LIMIT $2`,
+    [identityId, limit, config.rainmakerThreshold],
+  );
+  return r.rows;
+}
+
+export type PayoutReceipt = PublicPayout & {
+  product_url: string;
+  total_paid_cents: number;
+};
+
+export async function getPayoutReceipt(id: string): Promise<PayoutReceipt | null> {
+  const r = await query<PayoutReceipt>(
+    `SELECT c.id,
+            r.identity_id,
+            c.paid_at::text,
+            c.reward_cents,
+            b.company_name,
+            b.slug,
+            b.headline,
+            b.product_url,
+            b.creator_x_handle,
+            r.x_handle,
+            r.source_post_url,
+            COALESCE((
+              SELECT SUM(r2.approved_conversions)::int
+                FROM referrals r2
+               WHERE (r.identity_id IS NOT NULL AND r2.identity_id=r.identity_id)
+                  OR (r.identity_id IS NULL AND r2.identity_id IS NULL AND lower(r2.x_handle)=lower(r.x_handle))
+            ),0) total_approved,
+            COALESCE((
+              SELECT SUM(c3.reward_cents)::int
+                FROM conversion_claims c3
+                JOIN referrals r3 ON r3.id=c3.referral_id
+               WHERE c3.payout_status='paid'
+                 AND c3.paid_at IS NOT NULL
+                 AND c3.stripe_transfer_id IS NOT NULL
+                 AND (
+                   (r.identity_id IS NOT NULL AND r3.identity_id=r.identity_id)
+                   OR (r.identity_id IS NULL AND r3.identity_id IS NULL AND lower(r3.x_handle)=lower(r.x_handle))
+                 )
+            ),0) total_paid_cents,
+            COALESCE((
+              SELECT SUM(r4.approved_conversions)
+                FROM referrals r4
+               WHERE (r.identity_id IS NOT NULL AND r4.identity_id=r.identity_id)
+                  OR (r.identity_id IS NULL AND r4.identity_id IS NULL AND lower(r4.x_handle)=lower(r.x_handle))
+            ),0) >= $2 rainmaker
+       FROM conversion_claims c
+       JOIN bounties b ON b.id=c.bounty_id
+       JOIN referrals r ON r.id=c.referral_id
+      WHERE c.id=$1::uuid
+        AND c.payout_status='paid'
+        AND c.paid_at IS NOT NULL
+        AND c.stripe_transfer_id IS NOT NULL
+      LIMIT 1`,
+    [id, config.rainmakerThreshold],
+  );
+  return r.rows[0] ?? null;
 }
 
 export async function publicLedgerStats() {
@@ -214,7 +434,7 @@ export async function publicLedgerStats() {
       COUNT(*)::int payout_count,
       COUNT(DISTINCT bounty_id)::int companies_paid
      FROM conversion_claims
-     WHERE payout_status='paid' AND paid_at IS NOT NULL`,
+     WHERE payout_status='paid' AND paid_at IS NOT NULL AND stripe_transfer_id IS NOT NULL`,
   );
   return r.rows[0] ?? { total_paid_cents: "0", payout_count: 0, companies_paid: 0 };
 }

@@ -51,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="nav-hide-sm">Board</Link>
             <Link href="/explore" className="nav-hide-sm">Market</Link>
             <Link href="/ledger" className="nav-hide-md">Ledger</Link>
+            <Link href="/leaderboard" className="nav-hide-md">Rank</Link>
             <Link href="/network" className="nav-hide-md">Earn</Link>
           </nav>
           <Link href="/create" className="nav-launch">List<span className="hide-sm"> bounty</span></Link>
@@ -60,7 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <footer className="site-footer">
         <div className="shell footer">
           <div><b>FirstCustomer</b><span>Rank is funded demand.</span></div>
-          <div><Link href="/">Board</Link><Link href="/ledger">Ledger</Link><Link href="/network">Earn</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></div>
+          <div><Link href="/">Board</Link><Link href="/ledger">Ledger</Link><Link href="/leaderboard">Leaderboard</Link><Link href="/network">Earn</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></div>
         </div>
       </footer>
     </body>

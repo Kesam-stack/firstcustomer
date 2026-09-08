@@ -5,6 +5,7 @@ import {hashToken,safeEqualHex} from "@/lib/security";
 import {money} from "@/lib/format";
 import SourcePostForm from "@/components/SourcePostForm";
 import {config} from "@/lib/config";
+import {siteUrl} from "@/lib/site";
 
 export const dynamic="force-dynamic";
 
@@ -30,7 +31,15 @@ export default async function Page({params,searchParams}:{params:Promise<{code:s
   }
 
   const rainmaker=r.global_approved>=config.rainmakerThreshold;
-  const shareText=encodeURIComponent("I earned "+money(r.paid_cents)+" through FirstCustomer referrals for "+r.company_name+". Proof is on the public ledger.");
+  const latest=await query<{id:string;identity_id:string|null;reward_cents:number}>(
+    "SELECT c.id,r.identity_id,c.reward_cents FROM conversion_claims c JOIN referrals r ON r.id=c.referral_id WHERE c.referral_id=$1 AND c.payout_status='paid' AND c.paid_at IS NOT NULL AND c.stripe_transfer_id IS NOT NULL ORDER BY c.paid_at DESC LIMIT 1",
+    [r.id],
+  );
+  const latestReceipt=latest.rows[0]?.id?"/p/"+latest.rows[0].id:null;
+  const publicProfile=latest.rows[0]?.identity_id?"/people/"+latest.rows[0].identity_id:null;
+  const shareText=latestReceipt
+    ? encodeURIComponent("I earned "+money(latest.rows[0].reward_cents)+" bringing a qualified customer to "+r.company_name+" through FirstCustomer. Verified receipt: "+siteUrl(latestReceipt))
+    : encodeURIComponent("I earned "+money(r.paid_cents)+" through FirstCustomer referrals for "+r.company_name+".");
   return <main className="narrow page-pad">
     <div className="page-heading">
       <span className="eyebrow">Referrer</span>
@@ -51,7 +60,11 @@ export default async function Page({params,searchParams}:{params:Promise<{code:s
     {r.payout_mode==="stripe"&&!r.payouts_enabled&&<form action={"/api/referrals/"+encodeURIComponent(code)+"/payouts?key="+encodeURIComponent(key)} method="post"><button className="button launch-button full">Set up Stripe payouts →</button></form>}
     <div className="share-strip" style={{marginTop:18}}><span>Referral code</span><code>{r.code}</code></div>
     <SourcePostForm code={code} secret={key} current={r.source_post_url || null} />
-    {r.paid_cents>0&&<div className="two-actions" style={{marginTop:14}}><Link className="button secondary" href="/ledger">View proof on ledger</Link><a className="button secondary" target="_blank" rel="noreferrer" href={"https://x.com/intent/post?text="+shareText}>Share payout on X</a></div>}
+    {r.paid_cents>0&&<div className="two-actions" style={{marginTop:14}}>
+      {latestReceipt?<Link className="button secondary" href={latestReceipt}>View payout receipt</Link>:<Link className="button secondary" href="/ledger">View proof on ledger</Link>}
+      {publicProfile&&<Link className="button secondary" href={publicProfile}>Public profile</Link>}
+      <a className="button secondary" target="_blank" rel="noreferrer" href={"https://x.com/intent/post?text="+shareText}>Share payout on X</a>
+    </div>}
     <p className="fineprint">Keep this dashboard URL private. It controls payout onboarding for this referral.</p>
   </main>;
 }
