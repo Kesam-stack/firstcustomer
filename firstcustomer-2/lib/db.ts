@@ -591,7 +591,7 @@ export async function adminTrafficSeries(days = 14): Promise<AdminTrafficDay[]> 
   const r = await query<AdminTrafficDay>(
     `WITH days AS (
        SELECT generate_series(
-         date_trunc('day',NOW()) - (($1 - 1) * INTERVAL '1 day'),
+         date_trunc('day',NOW()) - (($1::int - 1) * INTERVAL '1 day'),
          date_trunc('day',NOW()),
          INTERVAL '1 day'
        ) day
