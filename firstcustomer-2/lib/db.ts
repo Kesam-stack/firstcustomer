@@ -660,10 +660,10 @@ export async function adminOverview() {
       (SELECT COUNT(*)::int FROM referrals) referrals,
       (SELECT COUNT(*)::int FROM network_members) members,
       (SELECT COUNT(*)::int FROM conversion_claims) conversions,
-      (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='paid') paid,
+      (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='paid' AND stripe_transfer_id IS NOT NULL) paid,
       (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='failed') failed,
       (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status IN ('payment_pending','processing','manual_due')) pending,
-      (SELECT COALESCE(SUM(reward_cents),0)::text FROM conversion_claims WHERE payout_status='paid') paid_cents,
+      (SELECT COALESCE(SUM(reward_cents),0)::text FROM conversion_claims WHERE payout_status='paid' AND stripe_transfer_id IS NOT NULL) paid_cents,
       (SELECT COALESCE(SUM(launch_fee_cents),0)::text FROM bounties WHERE payment_verified) launch_fees_cents`,
   );
   return r.rows[0];
