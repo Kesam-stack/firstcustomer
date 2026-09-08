@@ -90,6 +90,7 @@ export type NetworkMember = {
   email_alerts: boolean;
   status: "active" | "paused";
   created_at: string;
+  last_seen_at: string | null;
 };
 
 export type CampaignMatch = Bounty & {

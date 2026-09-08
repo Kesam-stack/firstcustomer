@@ -466,7 +466,7 @@ export async function getReferralByCode(code: string): Promise<(Referral & { com
 }
 
 export async function getNetworkMember(id: string): Promise<NetworkMember | null> {
-  const r = await query<NetworkMember>(`SELECT id,email,x_handle,display_name,bio,categories,channels,audience_size,country,email_alerts,status,created_at::text FROM network_members WHERE id=$1 LIMIT 1`, [id]);
+  const r = await query<NetworkMember>(`SELECT id,email,x_handle,display_name,bio,categories,channels,audience_size,country,email_alerts,status,created_at::text,last_seen_at::text FROM network_members WHERE id=$1 LIMIT 1`, [id]);
   return r.rows[0] ?? null;
 }
 
@@ -486,6 +486,153 @@ export async function listMemberMatches(memberId: string, limit = 40): Promise<C
 export async function networkMatchCount(bountyId: string) {
   const r = await query<{ count: number }>(`SELECT COUNT(*)::int count FROM campaign_matches WHERE bounty_id=$1`, [bountyId]);
   return r.rows[0]?.count ?? 0;
+}
+
+export type AdminAnalyticsOverview = {
+  page_views_24h: number;
+  visitors_24h: number;
+  sessions_24h: number;
+  active_visitors_15m: number;
+  page_views_7d: number;
+  visitors_7d: number;
+  page_views_30d: number;
+  visitors_30d: number;
+  network_active_15m: number;
+  joins_7d: number;
+  claims_7d: number;
+  referral_clicks_7d: number;
+  conversions_7d: number;
+  approved_7d: number;
+  payouts_7d: number;
+  payout_cents_7d: string;
+  campaigns_created_7d: number;
+};
+
+export async function adminAnalyticsOverview(): Promise<AdminAnalyticsOverview | null> {
+  const r = await query<AdminAnalyticsOverview>(
+    `SELECT
+      (SELECT COUNT(*)::int FROM analytics_events WHERE created_at > NOW() - INTERVAL '24 hours') page_views_24h,
+      (SELECT COUNT(DISTINCT visitor_hash)::int FROM analytics_events WHERE created_at > NOW() - INTERVAL '24 hours') visitors_24h,
+      (SELECT COUNT(DISTINCT session_hash)::int FROM analytics_events WHERE created_at > NOW() - INTERVAL '24 hours') sessions_24h,
+      (SELECT COUNT(DISTINCT visitor_hash)::int FROM analytics_events WHERE created_at > NOW() - INTERVAL '15 minutes') active_visitors_15m,
+      (SELECT COUNT(*)::int FROM analytics_events WHERE created_at > NOW() - INTERVAL '7 days') page_views_7d,
+      (SELECT COUNT(DISTINCT visitor_hash)::int FROM analytics_events WHERE created_at > NOW() - INTERVAL '7 days') visitors_7d,
+      (SELECT COUNT(*)::int FROM analytics_events WHERE created_at > NOW() - INTERVAL '30 days') page_views_30d,
+      (SELECT COUNT(DISTINCT visitor_hash)::int FROM analytics_events WHERE created_at > NOW() - INTERVAL '30 days') visitors_30d,
+      (SELECT COUNT(*)::int FROM network_members WHERE status='active' AND last_seen_at > NOW() - INTERVAL '15 minutes') network_active_15m,
+      (SELECT COUNT(*)::int FROM network_members WHERE created_at > NOW() - INTERVAL '7 days') joins_7d,
+      (SELECT COUNT(*)::int FROM campaign_matches WHERE claimed_at > NOW() - INTERVAL '7 days') claims_7d,
+      (SELECT COUNT(*)::int FROM referral_clicks WHERE created_at > NOW() - INTERVAL '7 days') referral_clicks_7d,
+      (SELECT COUNT(*)::int FROM conversion_claims WHERE created_at > NOW() - INTERVAL '7 days') conversions_7d,
+      (SELECT COUNT(*)::int FROM conversion_claims WHERE status='approved' AND approved_at > NOW() - INTERVAL '7 days') approved_7d,
+      (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='paid' AND paid_at > NOW() - INTERVAL '7 days' AND stripe_transfer_id IS NOT NULL) payouts_7d,
+      (SELECT COALESCE(SUM(reward_cents),0)::text FROM conversion_claims WHERE payout_status='paid' AND paid_at > NOW() - INTERVAL '7 days' AND stripe_transfer_id IS NOT NULL) payout_cents_7d,
+      (SELECT COUNT(*)::int FROM bounties WHERE created_at > NOW() - INTERVAL '7 days') campaigns_created_7d`,
+  );
+  return r.rows[0] ?? null;
+}
+
+export type AdminTopPage = { path: string; views: number; visitors: number };
+export async function adminTopPages(days = 7, limit = 15): Promise<AdminTopPage[]> {
+  const safeDays = Math.max(1, Math.min(90, Math.floor(days)));
+  const r = await query<AdminTopPage>(
+    `SELECT path,COUNT(*)::int views,COUNT(DISTINCT visitor_hash)::int visitors
+       FROM analytics_events
+      WHERE created_at > NOW() - ($1::int * INTERVAL '1 day')
+      GROUP BY path
+      ORDER BY views DESC,visitors DESC,path ASC
+      LIMIT $2`,
+    [safeDays, limit],
+  );
+  return r.rows;
+}
+
+export type AdminTrafficSource = { source: string; views: number; visitors: number };
+export async function adminTrafficSources(days = 7, limit = 12): Promise<AdminTrafficSource[]> {
+  const safeDays = Math.max(1, Math.min(90, Math.floor(days)));
+  const r = await query<AdminTrafficSource>(
+    `SELECT
+        CASE
+          WHEN utm_source IS NOT NULL THEN utm_source
+          WHEN referrer_host IS NULL OR referrer_host IN ('firstcustomer.xyz','www.firstcustomer.xyz') THEN 'Direct / internal'
+          ELSE referrer_host
+        END source,
+        COUNT(*)::int views,
+        COUNT(DISTINCT visitor_hash)::int visitors
+       FROM analytics_events
+      WHERE created_at > NOW() - ($1::int * INTERVAL '1 day')
+      GROUP BY 1
+      ORDER BY views DESC,visitors DESC
+      LIMIT $2`,
+    [safeDays, limit],
+  );
+  return r.rows;
+}
+
+export type AdminDeviceStat = { device_type: string; views: number; visitors: number };
+export async function adminDeviceBreakdown(days = 7): Promise<AdminDeviceStat[]> {
+  const safeDays = Math.max(1, Math.min(90, Math.floor(days)));
+  const r = await query<AdminDeviceStat>(
+    `SELECT COALESCE(device_type,'unknown') device_type,
+            COUNT(*)::int views,
+            COUNT(DISTINCT visitor_hash)::int visitors
+       FROM analytics_events
+      WHERE created_at > NOW() - ($1::int * INTERVAL '1 day')
+      GROUP BY 1
+      ORDER BY views DESC`,
+    [safeDays],
+  );
+  return r.rows;
+}
+
+export type AdminTrafficDay = { day: string; views: number; visitors: number; sessions: number };
+export async function adminTrafficSeries(days = 14): Promise<AdminTrafficDay[]> {
+  const safeDays = Math.max(2, Math.min(90, Math.floor(days)));
+  const r = await query<AdminTrafficDay>(
+    `WITH days AS (
+       SELECT generate_series(
+         date_trunc('day',NOW()) - (($1::int - 1) * INTERVAL '1 day'),
+         date_trunc('day',NOW()),
+         INTERVAL '1 day'
+       ) day
+     )
+     SELECT d.day::date::text day,
+            COUNT(a.id)::int views,
+            COUNT(DISTINCT a.visitor_hash)::int visitors,
+            COUNT(DISTINCT a.session_hash)::int sessions
+       FROM days d
+       LEFT JOIN analytics_events a
+         ON a.created_at >= d.day
+        AND a.created_at < d.day + INTERVAL '1 day'
+      GROUP BY d.day
+      ORDER BY d.day ASC`,
+    [safeDays],
+  );
+  return r.rows;
+}
+
+export type AdminRecentPageView = {
+  path: string;
+  source: string;
+  device_type: string;
+  created_at: string;
+};
+export async function adminRecentPageViews(limit = 40): Promise<AdminRecentPageView[]> {
+  const r = await query<AdminRecentPageView>(
+    `SELECT path,
+            CASE
+              WHEN utm_source IS NOT NULL THEN utm_source
+              WHEN referrer_host IS NULL OR referrer_host IN ('firstcustomer.xyz','www.firstcustomer.xyz') THEN 'Direct / internal'
+              ELSE referrer_host
+            END source,
+            COALESCE(device_type,'unknown') device_type,
+            created_at::text
+       FROM analytics_events
+      ORDER BY created_at DESC
+      LIMIT $1`,
+    [limit],
+  );
+  return r.rows;
 }
 
 export async function adminOverview() {
@@ -513,10 +660,10 @@ export async function adminOverview() {
       (SELECT COUNT(*)::int FROM referrals) referrals,
       (SELECT COUNT(*)::int FROM network_members) members,
       (SELECT COUNT(*)::int FROM conversion_claims) conversions,
-      (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='paid') paid,
+      (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='paid' AND stripe_transfer_id IS NOT NULL) paid,
       (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status='failed') failed,
       (SELECT COUNT(*)::int FROM conversion_claims WHERE payout_status IN ('payment_pending','processing','manual_due')) pending,
-      (SELECT COALESCE(SUM(reward_cents),0)::text FROM conversion_claims WHERE payout_status='paid') paid_cents,
+      (SELECT COALESCE(SUM(reward_cents),0)::text FROM conversion_claims WHERE payout_status='paid' AND stripe_transfer_id IS NOT NULL) paid_cents,
       (SELECT COALESCE(SUM(launch_fee_cents),0)::text FROM bounties WHERE payment_verified) launch_fees_cents`,
   );
   return r.rows[0];
@@ -589,7 +736,7 @@ export async function adminListReferrals() {
 
 export async function adminListMembers() {
   const r = await query<NetworkMember>(
-    `SELECT id,email,x_handle,display_name,bio,categories,channels,audience_size,country,email_alerts,status,created_at::text
+    `SELECT id,email,x_handle,display_name,bio,categories,channels,audience_size,country,email_alerts,status,created_at::text,last_seen_at::text
        FROM network_members
       ORDER BY created_at DESC
       LIMIT 200`,
