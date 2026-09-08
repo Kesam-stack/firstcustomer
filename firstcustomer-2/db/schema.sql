@@ -178,3 +178,68 @@ CREATE TABLE IF NOT EXISTS campaign_matches (
 );
 CREATE INDEX IF NOT EXISTS idx_campaign_matches_member ON campaign_matches(member_id,status,score DESC,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_campaign_matches_bounty ON campaign_matches(bounty_id,status,score DESC);
+
+
+-- Canonical referrer identity and payout-risk controls.
+CREATE TABLE IF NOT EXISTS referrer_identities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email_hash TEXT NOT NULL UNIQUE,
+  stripe_account_id TEXT UNIQUE,
+  payouts_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  risk_status TEXT NOT NULL DEFAULT 'clear' CHECK (risk_status IN ('clear','review','blocked')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE referrals ADD COLUMN IF NOT EXISTS identity_id UUID REFERENCES referrer_identities(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_referrals_identity ON referrals(identity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_referrals_unique_identity_per_bounty
+  ON referrals(bounty_id, identity_id)
+  WHERE identity_id IS NOT NULL;
+
+ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS company_identity_hash TEXT;
+ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS customer_fingerprint TEXT;
+ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS fraud_status TEXT NOT NULL DEFAULT 'clear';
+ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS fraud_score INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS fraud_reasons TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS attribution_locked_at TIMESTAMPTZ;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'conversion_claims_fraud_status_check'
+  ) THEN
+    ALTER TABLE conversion_claims
+      ADD CONSTRAINT conversion_claims_fraud_status_check
+      CHECK (fraud_status IN ('clear','review','blocked'));
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'conversion_claims_fraud_score_check'
+  ) THEN
+    ALTER TABLE conversion_claims
+      ADD CONSTRAINT conversion_claims_fraud_score_check
+      CHECK (fraud_score >= 0 AND fraud_score <= 100);
+  END IF;
+END $$;
+
+-- A customer can have only one active attribution for the same company identity.
+-- Rejected claims are excluded so a later valid referral can still be attributed.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conversion_unique_company_customer
+  ON conversion_claims(company_identity_hash, customer_fingerprint)
+  WHERE company_identity_hash IS NOT NULL
+    AND customer_fingerprint IS NOT NULL
+    AND status IN ('pending','approved');
+
+-- Stripe money movement objects are one-to-one with a conversion.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conversion_unique_payment_intent
+  ON conversion_claims(stripe_payment_intent_id)
+  WHERE stripe_payment_intent_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conversion_unique_transfer
+  ON conversion_claims(stripe_transfer_id)
+  WHERE stripe_transfer_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_conversion_fraud_review
+  ON conversion_claims(fraud_status, created_at DESC)
+  WHERE fraud_status <> 'clear';

@@ -5,6 +5,8 @@ import { stripe } from "@/lib/stripe";
 type PayoutRow = {
   id: string;
   reward_cents: number;
+  conversion_status: string;
+  fraud_status: string;
   payout_status: string;
   stripe_payment_intent_id: string | null;
   stripe_transfer_id: string | null;
@@ -17,6 +19,7 @@ type PayoutRow = {
   referral_id: string;
   stripe_account_id: string | null;
   payouts_enabled: boolean;
+  referrer_risk_status: string;
 };
 
 function chargeId(pi: Stripe.PaymentIntent) {
@@ -27,12 +30,27 @@ function chargeId(pi: Stripe.PaymentIntent) {
 
 async function loadConversion(conversionId: string) {
   const r = await query<PayoutRow>(
-    `SELECT c.id,c.reward_cents,c.payout_status,c.stripe_payment_intent_id,c.stripe_transfer_id,c.payout_available_at::text,
-            b.company_name,b.stripe_customer_id,b.stripe_payment_method_id,b.platform_fee_bps,b.payout_mode,
-            r.id referral_id,r.stripe_account_id,r.payouts_enabled
+    `SELECT c.id,
+            c.reward_cents,
+            c.status conversion_status,
+            c.fraud_status,
+            c.payout_status,
+            c.stripe_payment_intent_id,
+            c.stripe_transfer_id,
+            c.payout_available_at::text,
+            b.company_name,
+            b.stripe_customer_id,
+            b.stripe_payment_method_id,
+            b.platform_fee_bps,
+            b.payout_mode,
+            r.id referral_id,
+            COALESCE(ri.stripe_account_id,r.stripe_account_id) stripe_account_id,
+            COALESCE(ri.payouts_enabled,r.payouts_enabled) payouts_enabled,
+            COALESCE(ri.risk_status,'clear') referrer_risk_status
        FROM conversion_claims c
        JOIN bounties b ON b.id=c.bounty_id
        JOIN referrals r ON r.id=c.referral_id
+       LEFT JOIN referrer_identities ri ON ri.id=r.identity_id
       WHERE c.id=$1`,
     [conversionId],
   );
@@ -41,11 +59,28 @@ async function loadConversion(conversionId: string) {
 
 async function markFailed(conversionId: string, message: string) {
   await query(
-    `UPDATE conversion_claims SET payout_status='failed', payout_error=$2
+    `UPDATE conversion_claims
+        SET payout_status='failed',payout_error=$2
       WHERE id=$1 AND payout_status <> 'paid'`,
     [conversionId, message.slice(0, 500)],
   );
-  await query("INSERT INTO payout_events(conversion_id,event_type,detail) VALUES($1,'failed',$2)", [conversionId, message.slice(0, 500)]);
+  await query(
+    "INSERT INTO payout_events(conversion_id,event_type,detail) VALUES($1,'failed',$2)",
+    [conversionId, message.slice(0, 500)],
+  );
+}
+
+async function markRiskHold(conversionId: string, message: string) {
+  await query(
+    `UPDATE conversion_claims
+        SET payout_status='payment_pending',payout_error=$2
+      WHERE id=$1 AND payout_status <> 'paid'`,
+    [conversionId, message.slice(0, 500)],
+  );
+  await query(
+    "INSERT INTO payout_events(conversion_id,event_type,detail) VALUES($1,'risk_hold',$2)",
+    [conversionId, message.slice(0, 500)],
+  );
 }
 
 async function getOrCreatePaymentIntent(row: PayoutRow, amount: number) {
@@ -112,8 +147,11 @@ function holdUntil(iso: string | null) {
 
 export async function processDuePayouts(limit = 8) {
   const due = await query<{ id: string }>(
-    `SELECT id FROM conversion_claims
-      WHERE payout_status='payment_pending'
+    `SELECT id
+       FROM conversion_claims
+      WHERE status='approved'
+        AND fraud_status='clear'
+        AND payout_status='payment_pending'
         AND (payout_available_at IS NULL OR payout_available_at <= NOW())
       ORDER BY payout_available_at ASC NULLS FIRST
       LIMIT $1`,
@@ -133,7 +171,22 @@ export async function processDuePayouts(limit = 8) {
 export async function attemptAutomaticPayout(conversionId: string) {
   const row = await loadConversion(conversionId);
   if (!row) throw new Error("Conversion not found");
-  if (row.payout_status === "paid") return { status: "paid", transferId: row.stripe_transfer_id || undefined };
+  if (row.payout_status === "paid") {
+    return { status: "paid" as const, transferId: row.stripe_transfer_id || undefined };
+  }
+
+  if (row.conversion_status !== "approved") {
+    await markRiskHold(conversionId, "Conversion is not approved for payout.");
+    return { status: "not_approved" as const };
+  }
+  if (row.fraud_status !== "clear") {
+    await markRiskHold(conversionId, `Conversion fraud status is ${row.fraud_status}.`);
+    return { status: "fraud_review" as const };
+  }
+  if (row.referrer_risk_status !== "clear") {
+    await markRiskHold(conversionId, `Referrer payout identity risk status is ${row.referrer_risk_status}.`);
+    return { status: "fraud_review" as const };
+  }
 
   const held = holdUntil(row.payout_available_at);
   if (held) {
@@ -141,16 +194,25 @@ export async function attemptAutomaticPayout(conversionId: string) {
   }
 
   if (row.payout_mode !== "stripe" || !process.env.STRIPE_SECRET_KEY) {
-    await query("UPDATE conversion_claims SET payout_status='not_configured' WHERE id=$1 AND payout_status <> 'paid'", [conversionId]);
-    return { status: "not_configured" };
+    await query(
+      "UPDATE conversion_claims SET payout_status='not_configured' WHERE id=$1 AND payout_status <> 'paid'",
+      [conversionId],
+    );
+    return { status: "not_configured" as const };
   }
   if (!row.stripe_customer_id || !row.stripe_payment_method_id) {
-    await query("UPDATE conversion_claims SET payout_status='payment_pending', payout_error='Company payment method is not ready' WHERE id=$1 AND payout_status <> 'paid'", [conversionId]);
-    return { status: "payment_pending" };
+    await query(
+      "UPDATE conversion_claims SET payout_status='payment_pending',payout_error='Company payment method is not ready' WHERE id=$1 AND payout_status <> 'paid'",
+      [conversionId],
+    );
+    return { status: "payment_pending" as const };
   }
   if (!row.stripe_account_id || !row.payouts_enabled) {
-    await query("UPDATE conversion_claims SET payout_status='payment_pending', payout_error='Referrer payout account is not ready' WHERE id=$1 AND payout_status <> 'paid'", [conversionId]);
-    return { status: "payment_pending" };
+    await query(
+      "UPDATE conversion_claims SET payout_status='payment_pending',payout_error='Referrer payout account is not ready' WHERE id=$1 AND payout_status <> 'paid'",
+      [conversionId],
+    );
+    return { status: "payment_pending" as const };
   }
 
   if (row.stripe_payment_intent_id && row.stripe_transfer_id) {
@@ -159,7 +221,7 @@ export async function attemptAutomaticPayout(conversionId: string) {
 
   const fee = Math.ceil(row.reward_cents * row.platform_fee_bps / 10000);
   await query(
-    "UPDATE conversion_claims SET payout_status='processing', platform_fee_cents=$2, payout_error=NULL WHERE id=$1 AND payout_status <> 'paid'",
+    "UPDATE conversion_claims SET payout_status='processing',platform_fee_cents=$2,payout_error=NULL WHERE id=$1 AND payout_status <> 'paid'",
     [conversionId, fee],
   );
 
@@ -172,15 +234,15 @@ export async function attemptAutomaticPayout(conversionId: string) {
 
     if (pi.status === "processing" || pi.status === "requires_action") {
       await query(
-        "UPDATE conversion_claims SET payout_status='payment_pending', payout_error=$2 WHERE id=$1 AND payout_status <> 'paid'",
+        "UPDATE conversion_claims SET payout_status='payment_pending',payout_error=$2 WHERE id=$1 AND payout_status <> 'paid'",
         [conversionId, `PaymentIntent is ${pi.status}`],
       );
-      return { status: "payment_pending" };
+      return { status: "payment_pending" as const };
     }
     if (pi.status !== "succeeded") {
       const message = `PaymentIntent is ${pi.status}`;
       await markFailed(conversionId, message);
-      return { status: "failed", error: message };
+      return { status: "failed" as const, error: message };
     }
 
     const charge = chargeId(pi);
@@ -189,10 +251,14 @@ export async function attemptAutomaticPayout(conversionId: string) {
     const transfer = await getOrCreateTransfer({ ...row, stripe_payment_intent_id: pi.id }, charge);
     return markPaid({ ...row, stripe_payment_intent_id: pi.id }, pi.id, transfer.id);
   } catch (error) {
-    const paid = await query<{ payout_status: string }>("SELECT payout_status FROM conversion_claims WHERE id=$1", [conversionId]);
-    if (paid.rows[0]?.payout_status === "paid") return { status: "paid" };
+    const paid = await query<{ payout_status: string }>(
+      "SELECT payout_status FROM conversion_claims WHERE id=$1",
+      [conversionId],
+    );
+    if (paid.rows[0]?.payout_status === "paid") return { status: "paid" as const };
+
     const message = error instanceof Error ? error.message : "Automatic payout failed";
     await markFailed(conversionId, message);
-    return { status: "failed", error: message };
+    return { status: "failed" as const, error: message };
   }
 }

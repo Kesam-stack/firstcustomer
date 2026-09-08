@@ -19,8 +19,27 @@ export async function POST(req: Request) {
 
     if (event.type === "account.updated") {
       const account = event.data.object;
-      const enabled = Boolean(account.payouts_enabled && account.charges_enabled !== false);
-      await query("UPDATE referrals SET payouts_enabled=$2 WHERE stripe_account_id=$1", [account.id, enabled]);
+      const enabled = Boolean(account.payouts_enabled);
+
+      const identity = await query<{ id: string }>(
+        `UPDATE referrer_identities
+            SET payouts_enabled=$2,updated_at=NOW()
+          WHERE stripe_account_id=$1
+          RETURNING id`,
+        [account.id, enabled],
+      );
+
+      if (identity.rows[0]) {
+        await query(
+          "UPDATE referrals SET payouts_enabled=$2,stripe_account_id=$3 WHERE identity_id=$1",
+          [identity.rows[0].id, enabled, account.id],
+        );
+      } else {
+        await query(
+          "UPDATE referrals SET payouts_enabled=$2 WHERE stripe_account_id=$1",
+          [account.id, enabled],
+        );
+      }
     }
 
     return NextResponse.json({ received: true });

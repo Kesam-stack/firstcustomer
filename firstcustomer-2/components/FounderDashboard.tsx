@@ -54,8 +54,29 @@ export default function FounderDashboard({
     const data = await response.json();
     if (!response.ok) return setMessage(data.error || "Could not approve");
     if (data.payout?.status === "paid") setMessage("Conversion approved and reward paid.");
+    else if (data.payout?.status === "fraud_review") setMessage("Conversion approved. First payout is held for FirstCustomer risk review.");
     else if (data.payout?.status === "held" && data.payout.availableAt) setMessage(`Conversion approved. Payout is held until ${new Date(data.payout.availableAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}.`);
     else setMessage(`Conversion approved. Payout status: ${data.payout?.status || "recorded"}.`);
+    location.reload();
+  }
+
+  async function approveReported(conversionId: string) {
+    const response = await fetch(`/api/manage/${bounty.id}/conversion`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-owner-key": ownerKey },
+      body: JSON.stringify({ conversionId }),
+    });
+    const data = await response.json();
+    if (!response.ok) return setMessage(data.error || "Could not approve reported conversion");
+    if (data.payout?.status === "fraud_review") {
+      setMessage("Conversion approved. First payout is held for FirstCustomer risk review.");
+    } else if (data.payout?.status === "paid") {
+      setMessage("Conversion approved and reward paid.");
+    } else if (data.payout?.status === "held" && data.payout.availableAt) {
+      setMessage(`Conversion approved. Payout is held until ${new Date(data.payout.availableAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}.`);
+    } else {
+      setMessage(`Conversion approved. Payout status: ${data.payout?.status || "recorded"}.`);
+    }
     location.reload();
   }
 
@@ -148,7 +169,20 @@ export default function FounderDashboard({
 
     <section className="table-card"><div className="table-head"><h2>Conversions & payouts</h2><span>{conversions.length}</span></div><div className="table-scroll"><table><thead><tr><th>Referrer</th><th>Customer ref</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>{conversions.length ? conversions.map((conversion) => {
       const heldUntil = conversion.payout_available_at && Date.parse(conversion.payout_available_at) > Date.now() ? new Date(conversion.payout_available_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
-      return <tr key={conversion.id}><td>@{conversion.x_handle}</td><td>{conversion.customer_reference}</td><td>{money(conversion.reward_cents)}</td><td><span className={`status-pill ${conversion.payout_status === "paid" ? "status-paid" : ""}`}>{heldUntil ? `held until ${heldUntil}` : conversion.payout_status}</span></td><td>{bounty.payout_mode === "stripe" && conversion.payout_status !== "paid" && !heldUntil ? <button className="tiny-button" onClick={() => retry(conversion.id)}>Retry payout</button> : null}</td></tr>;
+      const riskHeld = conversion.fraud_status !== "clear";
+      const statusLabel = conversion.status === "pending"
+        ? "reported · awaiting approval"
+        : riskHeld
+          ? `risk ${conversion.fraud_status}`
+          : heldUntil
+            ? `held until ${heldUntil}`
+            : conversion.payout_status;
+      const action = conversion.status === "pending"
+        ? <button className="tiny-button" onClick={() => approveReported(conversion.id)}>Approve reported</button>
+        : bounty.payout_mode === "stripe" && conversion.status === "approved" && conversion.fraud_status === "clear" && conversion.payout_status !== "paid" && !heldUntil
+          ? <button className="tiny-button" onClick={() => retry(conversion.id)}>Retry payout</button>
+          : null;
+      return <tr key={conversion.id}><td>@{conversion.x_handle}</td><td>{conversion.customer_reference}</td><td>{money(conversion.reward_cents)}</td><td><span className={`status-pill ${conversion.payout_status === "paid" ? "status-paid" : ""}`}>{statusLabel}</span></td><td>{action}</td></tr>;
     }) : <tr><td colSpan={5}>No verified customer conversions yet.</td></tr>}</tbody></table></div></section>
     <p className="fineprint">Automatic payouts are not instant. After you approve a customer, FirstCustomer waits {payoutDelayDays} day{payoutDelayDays === 1 ? "" : "s"} before charging the card and transferring the reward. The success fee is charged in addition to the advertised reward.</p>
   </main>;
