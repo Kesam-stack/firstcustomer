@@ -35,6 +35,8 @@ export default function AnalyticsBeacon() {
 
   useEffect(() => {
     if (!pathname || pathname.startsWith("/admin") || pathname.startsWith("/api")) return;
+    if (pathname.startsWith("/manage/") || pathname.startsWith("/referrals/")) return;
+    if (/^\/network\/[0-9a-f-]{30,}$/i.test(pathname)) return;
 
     try {
       const visitorId = idFrom(localStorage, "fc_visitor_id");
