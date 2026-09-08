@@ -30,7 +30,7 @@ export default async function NetworkPage() {
       <div>
         <div className="section-bar"><div><span>01</span><h2>Current board</h2></div><Link href="/explore">Full market</Link></div>
         <div className="board-head compact">
-          <span>#</span><span>Company</span><span>Customer</span><span>Reward</span><span>Pool</span><span>Left</span><span>Clicks</span><span>Status</span>
+          <span>#</span><span>Company</span><span>Customer</span><span>Reward</span><span>Pool</span><span>Left</span><span>Claims</span><span>Status</span>
         </div>
         <div className="board-list">
           {campaigns.length

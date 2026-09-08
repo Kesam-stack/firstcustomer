@@ -1,12 +1,39 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getBountyBySlug, getBountyRank, bountyTraffic } from "@/lib/db";
 import { money, poolCents, remaining, tweetIntent } from "@/lib/format";
 import ReferralBox from "@/components/ReferralBox";
 import { config } from "@/lib/config";
 import { isFunded, isHoldActive } from "@/lib/market";
+import { CANONICAL_ORIGIN } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const bounty = await getBountyBySlug(slug);
+  if (!bounty) return { title: "FirstCustomer" };
+  const title = `${bounty.company_name} is paying ${money(bounty.reward_cents)} per customer`;
+  const description = bounty.headline;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/b/${bounty.slug}` },
+    openGraph: {
+      title,
+      description,
+      url: `${CANONICAL_ORIGIN}/b/${bounty.slug}`,
+      type: "website",
+      siteName: "FirstCustomer",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function Page({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ ref?: string }> }) {
   const { slug } = await params;
@@ -46,7 +73,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <div><span>Clicks</span><strong>{traffic.click_count}</strong></div>
       </div>
       <div className="progress"><div style={{ width: `${pct}%` }} /></div>
-      <p className="listing-meta">{traffic.referrer_count} referrer{traffic.referrer_count === 1 ? "" : "s"} · {holding ? "Holding #1" : isFunded(bounty) ? "Funded automatic payout" : "Manual payout — cannot take #1"} · {bounty.approved_count}/{bounty.goal_count} approved</p>
+      <p className="listing-meta">{traffic.referrer_count} claim{traffic.referrer_count === 1 ? "" : "s"} · {holding ? "Holding #1" : isFunded(bounty) ? "Funded automatic payout" : "Manual payout — cannot take #1"} · {bounty.approved_count}/{bounty.goal_count} approved</p>
 
       <div className="summary-box">
         <span>Company</span>

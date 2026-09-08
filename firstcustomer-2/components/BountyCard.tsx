@@ -7,7 +7,7 @@ export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: nu
   const left = remaining(bounty.goal_count, bounty.approved_count);
   const pool = poolCents(bounty.reward_cents, bounty.goal_count, bounty.approved_count);
   const initial = bounty.company_name.trim().charAt(0).toUpperCase();
-  const clicks = bounty.click_count ?? 0;
+  const claims = bounty.referrer_count ?? 0;
   const funded = isFunded(bounty);
   const holding = isHoldActive(bounty);
 
@@ -21,7 +21,7 @@ export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: nu
     <div className="market-number reward"><span>Reward</span><strong>{money(bounty.reward_cents)}</strong></div>
     <div className="market-number"><span>Pool</span><strong>{money(pool)}</strong></div>
     <div className="market-number"><span>Left</span><strong>{left}</strong></div>
-    <div className="market-number"><span>Clicks</span><strong>{clicks}</strong></div>
+    <div className="market-number"><span>Claims</span><strong>{claims}</strong></div>
     <div className="market-status">{holding ? <span className="status-verified">Hold #1</span> : funded ? <span className="status-verified">{bounty.launch_fee_cents === 0 ? "Live" : "Funded"}</span> : bounty.payment_verified ? <span>Manual</span> : <span>Pending</span>}<small>{holding ? "Paid pin" : funded ? (bounty.launch_fee_cents === 0 ? "Fee waived" : "Auto payout") : "Cannot take #1"}</small></div>
   </Link>;
 }

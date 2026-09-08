@@ -5,15 +5,9 @@ function requestHost(req: Request) {
 }
 
 export function publicOrigin(req: Request) {
+  if (process.env.NODE_ENV === "production") return CANONICAL_ORIGIN;
+
   const host = requestHost(req);
-
-  if (host === "firstcustomer.xyz" || host === "www.firstcustomer.xyz") return CANONICAL_ORIGIN;
-
-  if (process.env.NODE_ENV === "production") {
-    if (host.endsWith(".up.railway.app")) return `https://${host}`;
-    return CANONICAL_ORIGIN;
-  }
-
   const proto = (req.headers.get("x-forwarded-proto") || "http").split(",")[0].trim();
   if (host && host !== "localhost" && !host.startsWith("0.0.0.0") && !host.startsWith("[::]") && !host.endsWith(".local")) {
     return `${proto}://${host}`;

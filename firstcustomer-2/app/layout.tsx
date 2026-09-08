@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     siteName: "FirstCustomer",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "FirstCustomer",
     description: "Pay for customers. Not clicks. Highest funded bounty sits at #1.",
   },
