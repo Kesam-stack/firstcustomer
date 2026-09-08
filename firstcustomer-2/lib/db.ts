@@ -204,7 +204,7 @@ export async function listPublicPayouts(limit = 12, q?: string): Promise<PublicP
        FROM conversion_claims c
        JOIN bounties b ON b.id=c.bounty_id
        JOIN referrals r ON r.id=c.referral_id
-      WHERE c.payout_status='paid' AND c.paid_at IS NOT NULL${search}
+      WHERE c.payout_status='paid' AND c.paid_at IS NOT NULL AND c.stripe_transfer_id IS NOT NULL${search}
       ORDER BY c.paid_at DESC
       LIMIT $1`,
     values,
@@ -244,6 +244,7 @@ export async function listLeaderboard(limit = 100): Promise<LeaderboardEntry[]> 
          JOIN referrals r ON r.id=c.referral_id
         WHERE c.payout_status='paid'
           AND c.paid_at IS NOT NULL
+          AND c.stripe_transfer_id IS NOT NULL
           AND r.identity_id IS NOT NULL
         GROUP BY r.identity_id
      )
@@ -302,6 +303,7 @@ export async function getPublicReferrerProfile(identityId: string): Promise<Publ
         WHERE r.identity_id=$1::uuid
           AND c.payout_status='paid'
           AND c.paid_at IS NOT NULL
+          AND c.stripe_transfer_id IS NOT NULL
         GROUP BY r.identity_id
      )
      SELECT rs.identity_id,
@@ -342,6 +344,7 @@ export async function listPublicPayoutsByIdentity(identityId: string, limit = 20
        JOIN referrals r ON r.id=c.referral_id
       WHERE c.payout_status='paid'
         AND c.paid_at IS NOT NULL
+        AND c.stripe_transfer_id IS NOT NULL
         AND r.identity_id=$1::uuid
       ORDER BY c.paid_at DESC
       LIMIT $2`,
@@ -392,6 +395,7 @@ export async function getPayoutReceipt(id: string): Promise<PayoutReceipt | null
       WHERE c.id=$1::uuid
         AND c.payout_status='paid'
         AND c.paid_at IS NOT NULL
+        AND c.stripe_transfer_id IS NOT NULL
       LIMIT 1`,
     [id, config.rainmakerThreshold],
   );
@@ -405,7 +409,7 @@ export async function publicLedgerStats() {
       COUNT(*)::int payout_count,
       COUNT(DISTINCT bounty_id)::int companies_paid
      FROM conversion_claims
-     WHERE payout_status='paid' AND paid_at IS NOT NULL`,
+     WHERE payout_status='paid' AND paid_at IS NOT NULL AND stripe_transfer_id IS NOT NULL`,
   );
   return r.rows[0] ?? { total_paid_cents: "0", payout_count: 0, companies_paid: 0 };
 }
