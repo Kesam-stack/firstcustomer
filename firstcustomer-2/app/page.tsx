@@ -11,7 +11,7 @@ import { rankFunded } from "@/lib/market";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const emptyStats = { campaigns: 0, open_reward_cents: "0", network_members: 0, highest_reward_cents: "0", click_count: 0 };
+const emptyStats = { campaigns: 0, open_reward_cents: "0", network_members: 0, active_recently: 0, highest_reward_cents: "0", click_count: 0 };
 const emptyLedger = { total_paid_cents: "0", payout_count: 0, companies_paid: 0 };
 
 export default async function Home() {
@@ -70,7 +70,11 @@ export default async function Home() {
       <div className="shell ticker-inner">
         <div><span>Open reward pool</span><strong>{money(Number(stats.open_reward_cents))}</strong></div>
         <div><span>Live missions</span><strong>{stats.campaigns}</strong></div>
-        <div><span>Network members</span><strong>{stats.network_members}</strong></div>
+        <div className="network-live-stat">
+          <span>Network</span>
+          <strong>{stats.network_members} members</strong>
+          <small><i aria-hidden="true" /> {stats.active_recently} active recently</small>
+        </div>
         <div><span>Verified rewards paid</span><strong><CountUp cents={Number(ledger.total_paid_cents)} /></strong></div>
       </div>
     </section>
