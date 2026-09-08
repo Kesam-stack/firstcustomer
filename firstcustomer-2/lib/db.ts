@@ -141,15 +141,34 @@ export async function bountyTraffic(bountyId: string) {
 
 export async function listRainmakers(limit = 8): Promise<Rainmaker[]> {
   const r = await query<Rainmaker>(
-    `SELECT MAX(identity_id::text)::uuid identity_id,
-            (ARRAY_AGG(x_handle ORDER BY created_at DESC))[1] x_handle,
-            SUM(approved_conversions)::int approved,
-            SUM(paid_cents)::int paid_cents,
-            SUM(earned_cents)::int earned_cents
-       FROM referrals
-      GROUP BY COALESCE(identity_id::text,'legacy:' || lower(x_handle))
-     HAVING SUM(approved_conversions) >= $1
-      ORDER BY SUM(paid_cents) DESC, SUM(approved_conversions) DESC
+    `WITH referral_stats AS (
+       SELECT COALESCE(identity_id::text,'legacy:' || lower(x_handle)) group_key,
+              MAX(identity_id::text)::uuid identity_id,
+              (ARRAY_AGG(x_handle ORDER BY created_at DESC))[1] x_handle,
+              SUM(approved_conversions)::int approved,
+              SUM(earned_cents)::int earned_cents
+         FROM referrals
+        GROUP BY COALESCE(identity_id::text,'legacy:' || lower(x_handle))
+     ),
+     paid_stats AS (
+       SELECT COALESCE(r.identity_id::text,'legacy:' || lower(r.x_handle)) group_key,
+              COALESCE(SUM(c.reward_cents),0)::int paid_cents
+         FROM conversion_claims c
+         JOIN referrals r ON r.id=c.referral_id
+        WHERE c.payout_status='paid'
+          AND c.paid_at IS NOT NULL
+          AND c.stripe_transfer_id IS NOT NULL
+        GROUP BY COALESCE(r.identity_id::text,'legacy:' || lower(r.x_handle))
+     )
+     SELECT rs.identity_id,
+            rs.x_handle,
+            rs.approved,
+            COALESCE(ps.paid_cents,0)::int paid_cents,
+            rs.earned_cents
+       FROM referral_stats rs
+       LEFT JOIN paid_stats ps ON ps.group_key=rs.group_key
+      WHERE rs.approved >= $1
+      ORDER BY COALESCE(ps.paid_cents,0) DESC,rs.approved DESC
       LIMIT $2`,
     [config.rainmakerThreshold, limit],
   );
@@ -287,7 +306,6 @@ export async function getPublicReferrerProfile(identityId: string): Promise<Publ
               SUM(approved_conversions)::int approved,
               SUM(clicks)::int clicks,
               SUM(earned_cents)::int earned_cents,
-              SUM(paid_cents)::int paid_cents,
               MIN(created_at)::text first_seen_at
          FROM referrals
         WHERE identity_id=$1::uuid
@@ -296,6 +314,7 @@ export async function getPublicReferrerProfile(identityId: string): Promise<Publ
      paid_stats AS (
        SELECT r.identity_id,
               COUNT(*)::int paid_customers,
+              COALESCE(SUM(c.reward_cents),0)::int paid_cents,
               COUNT(DISTINCT c.bounty_id)::int campaigns_paid,
               MAX(c.paid_at)::text last_paid_at
          FROM conversion_claims c
@@ -311,7 +330,7 @@ export async function getPublicReferrerProfile(identityId: string): Promise<Publ
             rs.approved,
             rs.clicks,
             rs.earned_cents,
-            rs.paid_cents,
+            COALESCE(ps.paid_cents,0)::int paid_cents,
             COALESCE(ps.paid_customers,0)::int paid_customers,
             COALESCE(ps.campaigns_paid,0)::int campaigns_paid,
             rs.first_seen_at,
@@ -378,10 +397,16 @@ export async function getPayoutReceipt(id: string): Promise<PayoutReceipt | null
                   OR (r.identity_id IS NULL AND r2.identity_id IS NULL AND lower(r2.x_handle)=lower(r.x_handle))
             ),0) total_approved,
             COALESCE((
-              SELECT SUM(r3.paid_cents)::int
-                FROM referrals r3
-               WHERE (r.identity_id IS NOT NULL AND r3.identity_id=r.identity_id)
-                  OR (r.identity_id IS NULL AND r3.identity_id IS NULL AND lower(r3.x_handle)=lower(r.x_handle))
+              SELECT SUM(c3.reward_cents)::int
+                FROM conversion_claims c3
+                JOIN referrals r3 ON r3.id=c3.referral_id
+               WHERE c3.payout_status='paid'
+                 AND c3.paid_at IS NOT NULL
+                 AND c3.stripe_transfer_id IS NOT NULL
+                 AND (
+                   (r.identity_id IS NOT NULL AND r3.identity_id=r.identity_id)
+                   OR (r.identity_id IS NULL AND r3.identity_id IS NULL AND lower(r3.x_handle)=lower(r.x_handle))
+                 )
             ),0) total_paid_cents,
             COALESCE((
               SELECT SUM(r4.approved_conversions)
