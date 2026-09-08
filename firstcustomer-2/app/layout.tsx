@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Instrument_Serif, IBM_Plex_Mono, Inter } from "next/font/google";
 import { CANONICAL_ORIGIN, CONTACT_EMAIL } from "@/lib/site";
+import AnalyticsBeacon from "@/components/AnalyticsBeacon";
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -45,6 +46,7 @@ export const viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html lang="en" className={`${sans.variable} ${serif.variable} ${mono.variable}`}>
     <body>
+      <AnalyticsBeacon />
       <header className="site-header">
         <div className="shell nav">
           <Link href="/" className="wordmark">
