@@ -538,7 +538,7 @@ export async function adminTopPages(days = 7, limit = 15): Promise<AdminTopPage[
   const r = await query<AdminTopPage>(
     `SELECT path,COUNT(*)::int views,COUNT(DISTINCT visitor_hash)::int visitors
        FROM analytics_events
-      WHERE created_at > NOW() - ($1 * INTERVAL '1 day')
+      WHERE created_at > NOW() - ($1::int * INTERVAL '1 day')
       GROUP BY path
       ORDER BY views DESC,visitors DESC,path ASC
       LIMIT $2`,
@@ -560,7 +560,7 @@ export async function adminTrafficSources(days = 7, limit = 12): Promise<AdminTr
         COUNT(*)::int views,
         COUNT(DISTINCT visitor_hash)::int visitors
        FROM analytics_events
-      WHERE created_at > NOW() - ($1 * INTERVAL '1 day')
+      WHERE created_at > NOW() - ($1::int * INTERVAL '1 day')
       GROUP BY 1
       ORDER BY views DESC,visitors DESC
       LIMIT $2`,
@@ -577,7 +577,7 @@ export async function adminDeviceBreakdown(days = 7): Promise<AdminDeviceStat[]>
             COUNT(*)::int views,
             COUNT(DISTINCT visitor_hash)::int visitors
        FROM analytics_events
-      WHERE created_at > NOW() - ($1 * INTERVAL '1 day')
+      WHERE created_at > NOW() - ($1::int * INTERVAL '1 day')
       GROUP BY 1
       ORDER BY views DESC`,
     [safeDays],
