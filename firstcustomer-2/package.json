@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "node scripts/migrate.mjs && next start",
     "lint": "tsc --noEmit",
     "db:seed": "tsx scripts/seed.ts",
