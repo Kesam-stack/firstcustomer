@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     if (!visitorId || !sessionId) return NextResponse.json({ ok: false }, { status: 400 });
 
     const referrerHost = cleanAnalyticsText(body.referrerHost, 160);
-    const referrerPath = cleanAnalyticsPath(body.referrerPath);
+    const referrerPath = body.referrerPath ? cleanAnalyticsPath(body.referrerPath) : null;
     const utmSource = cleanAnalyticsText(body.utmSource, 80);
     const utmMedium = cleanAnalyticsText(body.utmMedium, 80);
     const utmCampaign = cleanAnalyticsText(body.utmCampaign, 120);
