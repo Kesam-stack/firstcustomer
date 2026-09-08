@@ -38,7 +38,8 @@ export const bountySelect = `id,slug,creator_email,creator_x_handle,company_name
 
 const featuredLive = `(featured_until IS NOT NULL AND featured_until > NOW())`;
 const fundedLiveRow = `(payment_verified AND payout_mode='stripe')`;
-const boardRankOrder = `CASE WHEN ${featuredLive} THEN 0 ELSE 1 END, CASE WHEN ${fundedLiveRow} THEN 0 ELSE 1 END, CASE WHEN ${featuredLive} THEN featured_until END DESC NULLS LAST, reward_cents DESC, created_at ASC, id ASC`;
+const liveLane = `(status='active' AND approved_count < goal_count)`;
+const boardRankOrder = `CASE WHEN ${liveLane} THEN 0 ELSE 1 END, CASE WHEN ${featuredLive} THEN 0 ELSE 1 END, CASE WHEN ${fundedLiveRow} THEN 0 ELSE 1 END, CASE WHEN ${featuredLive} THEN featured_until END DESC NULLS LAST, reward_cents DESC, created_at ASC, id ASC`;
 
 export async function getBountyBySlug(slug: string): Promise<Bounty | null> {
   const r = await query<Bounty>(`SELECT ${bountySelect} FROM bounties WHERE slug=$1 LIMIT 1`, [slug]);
@@ -56,10 +57,10 @@ export async function listMarketplaceBounties(limit = 12, category?: string, sor
     recommended: boardRankOrder,
     reward: boardRankOrder,
     new: "created_at DESC",
-    closing: `${fundedFirst},(goal_count-approved_count) ASC,reward_cents DESC`,
+    closing: `CASE WHEN ${liveLane} THEN 0 ELSE 1 END, ${fundedFirst},(goal_count-approved_count) ASC,reward_cents DESC`,
   }[sort];
   const values: unknown[] = [];
-  let where = "status='active' AND approved_count < goal_count";
+  let where = "status IN ('active','paused','closed')";
   if (category && category !== "All") {
     values.push(category);
     where += ` AND category=$${values.length}`;

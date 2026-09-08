@@ -10,7 +10,11 @@ export function isHoldActive(bounty: Pick<Bounty, "featured_until">) {
   return Number.isFinite(until) && until > Date.now();
 }
 
-export function rankFunded<T extends Pick<Bounty, "payment_verified" | "payout_mode">>(rows: T[]) {
+export function isLive(bounty: Pick<Bounty, "status" | "approved_count" | "goal_count">) {
+  return bounty.status === "active" && bounty.approved_count < bounty.goal_count;
+}
+
+export function rankFunded<T extends Pick<Bounty, "payment_verified" | "payout_mode" | "status" | "approved_count" | "goal_count">>(rows: T[]) {
   let rank = 0;
-  return rows.map((row) => ({ row, rank: isFunded(row) ? ++rank : undefined }));
+  return rows.map((row) => ({ row, rank: isLive(row) && isFunded(row) ? ++rank : undefined }));
 }

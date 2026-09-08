@@ -85,6 +85,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;box
 .board-head{padding:9px 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--ink)}
 .board-row{min-height:76px;padding:12px 0;border-bottom:1px solid var(--line);transition:background .12s}
 .board-row:hover{background:#ece7dc}
+.board-row.closed{opacity:.55}
 .board-rank{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.04em}
 .board-rank.top{color:var(--accent);font-weight:500}
 .market-company{display:flex;align-items:center;gap:10px;min-width:0}

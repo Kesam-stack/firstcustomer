@@ -53,10 +53,10 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   return <main className="narrow page-pad">
     <div className="listing">
       <div className="bounty-topbar">
-        <span className="live-dot" />
-        <b>{rank ? `#${rank} on the board` : isFunded(bounty) ? bounty.status.toUpperCase() : "Manual payout"}</b>
+        {bounty.status === "active" ? <span className="live-dot" /> : null}
+        <b>{rank ? `#${rank} on the board` : bounty.status === "closed" ? "Closed" : bounty.status === "paused" ? "Paused" : isFunded(bounty) ? bounty.status.toUpperCase() : "Manual payout"}</b>
         <span>{bounty.category}</span>
-        {holding ? <span className="verified-badge">Hold #1</span> : isFunded(bounty) ? <span className="verified-badge">{bounty.launch_fee_cents === 0 ? "Fee waived · live" : "Funded auto payout"}</span> : bounty.payment_verified ? <span className="verified-badge">Launch paid · manual</span> : null}
+        {bounty.status === "closed" ? <span className="verified-badge">Closed</span> : holding ? <span className="verified-badge">Hold #1</span> : isFunded(bounty) ? <span className="verified-badge">{bounty.launch_fee_cents === 0 ? "Fee waived · live" : "Funded auto payout"}</span> : bounty.payment_verified ? <span className="verified-badge">Launch paid · manual</span> : null}
       </div>
 
       <div className="campaign-company">
