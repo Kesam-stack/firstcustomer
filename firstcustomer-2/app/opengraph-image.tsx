@@ -43,7 +43,7 @@ export default function OpenGraphImage() {
           }}
         >
           <div>firstcustomer.xyz</div>
-          <div>Highest funded bounty sits at #1</div>
+          <div>Launch a mission. Reward a real customer.</div>
         </div>
       </div>
     ),
