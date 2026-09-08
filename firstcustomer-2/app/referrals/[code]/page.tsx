@@ -31,14 +31,14 @@ export default async function Page({params,searchParams}:{params:Promise<{code:s
   }
 
   const rainmaker=r.global_approved>=config.rainmakerThreshold;
-  const latest=await query<{id:string;identity_id:string|null}>(
-    "SELECT c.id,r.identity_id FROM conversion_claims c JOIN referrals r ON r.id=c.referral_id WHERE c.referral_id=$1 AND c.payout_status='paid' AND c.paid_at IS NOT NULL ORDER BY c.paid_at DESC LIMIT 1",
+  const latest=await query<{id:string;identity_id:string|null;reward_cents:number}>(
+    "SELECT c.id,r.identity_id,c.reward_cents FROM conversion_claims c JOIN referrals r ON r.id=c.referral_id WHERE c.referral_id=$1 AND c.payout_status='paid' AND c.paid_at IS NOT NULL AND c.stripe_transfer_id IS NOT NULL ORDER BY c.paid_at DESC LIMIT 1",
     [r.id],
   );
   const latestReceipt=latest.rows[0]?.id?"/p/"+latest.rows[0].id:null;
   const publicProfile=latest.rows[0]?.identity_id?"/people/"+latest.rows[0].identity_id:null;
   const shareText=latestReceipt
-    ? encodeURIComponent("I earned "+money(r.paid_cents)+" through FirstCustomer referrals for "+r.company_name+". Verified receipt: "+siteUrl(latestReceipt))
+    ? encodeURIComponent("I earned "+money(latest.rows[0].reward_cents)+" bringing a qualified customer to "+r.company_name+" through FirstCustomer. Verified receipt: "+siteUrl(latestReceipt))
     : encodeURIComponent("I earned "+money(r.paid_cents)+" through FirstCustomer referrals for "+r.company_name+".");
   return <main className="narrow page-pad">
     <div className="page-heading">
