@@ -19,11 +19,20 @@ export const metadata: Metadata = {
     type: "website",
     url: CANONICAL_ORIGIN,
     siteName: "FirstCustomer",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "FirstCustomer — Pay for customers. Not clicks.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "FirstCustomer",
     description: "Companies publish exact customer outcomes and rewards. Referrers bring qualified customers and get paid after verification.",
+    images: ["/twitter-image"],
   },
 };
 
