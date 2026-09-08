@@ -35,6 +35,7 @@ export type Bounty = {
 };
 
 export type Rainmaker = {
+  identity_id: string | null;
   x_handle: string;
   approved: number;
   paid_cents: number;
