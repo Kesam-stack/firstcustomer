@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 function randomId() {
@@ -32,7 +32,6 @@ function referrerParts() {
 
 export default function AnalyticsBeacon() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!pathname || pathname.startsWith("/admin") || pathname.startsWith("/api")) return;
@@ -41,14 +40,15 @@ export default function AnalyticsBeacon() {
       const visitorId = idFrom(localStorage, "fc_visitor_id");
       const sessionId = idFrom(sessionStorage, "fc_session_id");
       const referrer = referrerParts();
+      const params = new URLSearchParams(location.search);
       const payload = JSON.stringify({
         path: pathname,
         visitorId,
         sessionId,
         ...referrer,
-        utmSource: searchParams.get("utm_source"),
-        utmMedium: searchParams.get("utm_medium"),
-        utmCampaign: searchParams.get("utm_campaign"),
+        utmSource: params.get("utm_source"),
+        utmMedium: params.get("utm_medium"),
+        utmCampaign: params.get("utm_campaign"),
       });
 
       if (navigator.sendBeacon) {
@@ -62,7 +62,7 @@ export default function AnalyticsBeacon() {
         }).catch(() => {});
       }
     } catch {}
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return null;
 }
