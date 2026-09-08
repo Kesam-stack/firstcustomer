@@ -54,8 +54,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         reward_cents: number;
         payout_mode: string;
         creator_email: string;
+        product_url: string;
       }>(
-        "SELECT approved_count,goal_count,reward_cents,payout_mode,creator_email FROM bounties WHERE id=$1 FOR UPDATE",
+        "SELECT approved_count,goal_count,reward_cents,payout_mode,creator_email,product_url FROM bounties WHERE id=$1 FOR UPDATE",
         [id],
       );
       const campaign = lock.rows[0];
@@ -177,7 +178,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         throw new Error("Self-referrals are not eligible for a payout.");
       }
 
-      const companyHash = companyIdentityFingerprint(campaign.creator_email);
+      const companyHash = companyIdentityFingerprint(campaign.creator_email, campaign.product_url);
       const customerFingerprint = customerIdentityFingerprint(companyHash, customerReference);
       const firstPayoutReview = await needsFirstPayoutReview(db, ref.identity_id);
       const fraudStatus: "clear" | "review" = firstPayoutReview ? "review" : "clear";
