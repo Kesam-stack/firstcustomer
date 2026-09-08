@@ -9,6 +9,7 @@ import { isFunded, isHoldActive } from "@/lib/market";
 import { CANONICAL_ORIGIN } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

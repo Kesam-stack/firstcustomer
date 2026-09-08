@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin-auth";
 import { getBountyById, query } from "@/lib/db";
 
@@ -22,9 +23,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     if (status === "active" && bounty.launch_fee_cents === 0) {
       await query("UPDATE bounties SET status='active', payment_verified=TRUE, activated_at=COALESCE(activated_at,NOW()) WHERE id=$1", [id]);
-      return NextResponse.json({ ok: true, status: "active" });
+    } else {
+      await query("UPDATE bounties SET status=$2 WHERE id=$1", [id, status]);
     }
-    await query("UPDATE bounties SET status=$2 WHERE id=$1", [id, status]);
+    revalidatePath("/");
+    revalidatePath("/explore");
+    revalidatePath("/network");
+    revalidatePath(`/b/${bounty.slug}`);
+    revalidatePath("/admin/campaigns");
+    revalidatePath(`/admin/campaigns/${id}`);
     return NextResponse.json({ ok: true, status });
   }
 

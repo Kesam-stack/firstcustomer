@@ -8,8 +8,8 @@ import {config} from "@/lib/config";
 
 export const dynamic="force-dynamic";
 
-export default async function Page({params,searchParams}:{params:Promise<{code:string}>,searchParams:Promise<{key?:string}>}){
-  const{code}=await params,{key}=await searchParams;
+export default async function Page({params,searchParams}:{params:Promise<{code:string}>,searchParams:Promise<{key?:string;error?:string}>}){
+  const{code}=await params,{key,error}=await searchParams;
   if(!key)notFound();
   const auth=await query<{manage_secret_hash:string|null}>("SELECT manage_secret_hash FROM referrals WHERE code=$1",[code]);
   if(!auth.rows[0]?.manage_secret_hash||!safeEqualHex(auth.rows[0].manage_secret_hash,hashToken(key)))notFound();
@@ -43,6 +43,7 @@ export default async function Page({params,searchParams}:{params:Promise<{code:s
       <div><span>Earned</span><strong>{money(r.earned_cents)}</strong></div>
       <div><span>Paid</span><strong>{money(r.paid_cents)}</strong></div>
     </div>
+    {error&&<div className="error">{error}</div>}
     {r.payout_mode==="stripe"
       ?<div className={r.payouts_enabled?"notice":"warning"}>{r.payouts_enabled?"Stripe payout account ready.":"Complete Stripe onboarding before an automatic reward can be transferred."}</div>
       :<div className="warning">This campaign uses manual payouts. The company is responsible for paying approved rewards.</div>}

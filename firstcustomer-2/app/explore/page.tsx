@@ -5,6 +5,7 @@ import { money } from "@/lib/format";
 import { rankFunded } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 const categories = ["All", "Software", "Artificial Intelligence", "Fintech", "Consumer", "Marketplace", "Professional Services"];
 
 export default async function Explore({ searchParams }: { searchParams: Promise<{ category?: string; sort?: string }> }) {

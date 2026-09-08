@@ -9,6 +9,7 @@ import { config } from "@/lib/config";
 import { rankFunded } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const emptyStats = { campaigns: 0, open_reward_cents: "0", network_members: 0, highest_reward_cents: "0", click_count: 0 };
 const emptyLedger = { total_paid_cents: "0", payout_count: 0, companies_paid: 0 };
