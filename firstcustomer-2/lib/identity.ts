@@ -28,7 +28,13 @@ export function isEmailIdentity(value: string) {
   return EMAIL_RE.test(normalizeEmail(value));
 }
 
-export function companyIdentityFingerprint(creatorEmail: string) {
+export function companyIdentityFingerprint(creatorEmail: string, productUrl?: string) {
+  if (productUrl) {
+    try {
+      const host = new URL(productUrl).hostname.toLowerCase().replace(/^www\./, "");
+      if (host) return hmac("company", host);
+    } catch {}
+  }
   return hmac("company", normalizeEmail(creatorEmail));
 }
 
