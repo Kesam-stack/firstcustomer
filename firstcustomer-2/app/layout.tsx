@@ -9,13 +9,13 @@ const serif = Instrument_Serif({ weight: "400", subsets: ["latin"], variable: "-
 const mono = IBM_Plex_Mono({ weight: ["400", "500"], subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "FirstCustomer — Highest funded bounty sits at #1",
-  description: "A live board where companies pay for customers, not clicks. Rank is funded automatic-payout demand.",
+  title: "FirstCustomer — Pay for customers, not clicks",
+  description: "Companies publish exact customer outcomes and rewards. Referrers bring qualified customers and get paid after verification.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || CANONICAL_ORIGIN),
   alternates: { canonical: "/" },
   openGraph: {
     title: "FirstCustomer",
-    description: "Pay for customers. Not clicks. Highest funded bounty sits at #1.",
+    description: "Companies publish exact customer outcomes and rewards. Referrers bring qualified customers and get paid after verification.",
     type: "website",
     url: CANONICAL_ORIGIN,
     siteName: "FirstCustomer",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "FirstCustomer",
-    description: "Pay for customers. Not clicks. Highest funded bounty sits at #1.",
+    description: "Companies publish exact customer outcomes and rewards. Referrers bring qualified customers and get paid after verification.",
   },
 };
 
@@ -54,13 +54,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/leaderboard" className="nav-hide-md">Rank</Link>
             <Link href="/network" className="nav-hide-md">Earn</Link>
           </nav>
-          <Link href="/create" className="nav-launch">List<span className="hide-sm"> bounty</span></Link>
+          <Link href="/create" className="nav-launch">Launch<span className="hide-sm"> mission</span></Link>
         </div>
       </header>
       {children}
       <footer className="site-footer">
         <div className="shell footer">
-          <div><b>FirstCustomer</b><span>Rank is funded demand.</span></div>
+          <div><b>FirstCustomer</b><span>Customer acquisition, priced.</span></div>
           <div><Link href="/">Board</Link><Link href="/ledger">Ledger</Link><Link href="/leaderboard">Leaderboard</Link><Link href="/network">Earn</Link><Link href="/terms">Terms</Link><Link href="/privacy">Privacy</Link><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></div>
         </div>
       </footer>

@@ -23,7 +23,7 @@ export default function QuickLaunch({
 
   return <form className="board-launch" onSubmit={submit}>
     <label>
-      Product URL
+      Product or company URL
       <input name="productUrl" required inputMode="url" placeholder="yourcompany.com" autoComplete="url" />
     </label>
     <label>
@@ -31,9 +31,9 @@ export default function QuickLaunch({
       <div className="money-input"><span>$</span><input name="reward" required min={minimumRewardDollars} max={maximumRewardDollars} defaultValue={Math.max(50, minimumRewardDollars)} type="number" /></div>
     </label>
     <label>
-      Wanted
+      Customers wanted
       <input name="goal" required min="1" max={maximumGoalCount} defaultValue="10" type="number" />
     </label>
-    <button className="button launch-button">List bounty →</button>
+    <button className="button launch-button">Preview mission →</button>
   </form>;
 }
