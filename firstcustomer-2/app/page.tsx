@@ -5,6 +5,7 @@ import QuickLaunch from "@/components/QuickLaunch";
 import { money } from "@/lib/format";
 import LedgerRow from "@/components/LedgerRow";
 import CountUp from "@/components/CountUp";
+import MarketHeat from "@/components/MarketHeat";
 import { config } from "@/lib/config";
 import { rankFunded } from "@/lib/market";
 
@@ -32,6 +33,16 @@ export default async function Home() {
   } catch {}
 
   const successFee = config.platformFeeBps / 100;
+
+  // A transparent activity index, not a user or traffic count.
+  // Starts at 50 and accelerates as real marketplace activity compounds.
+  const activityUnits =
+    stats.active_recently * 4 +
+    stats.campaigns * 3 +
+    Math.sqrt(Math.max(0, stats.click_count)) * 1.5 +
+    ledger.payout_count * 6 +
+    Math.log1p(Math.max(0, Number(ledger.total_paid_cents)) / 100) * 2;
+  const marketHeat = Math.round(50 + Math.pow(activityUnits, 1.18));
 
   return <main>
     <section className="board-top shell">
@@ -75,6 +86,7 @@ export default async function Home() {
           <strong>{stats.network_members} members</strong>
           <small><i aria-hidden="true" /> {stats.active_recently} active recently</small>
         </div>
+        <MarketHeat value={marketHeat} />
         <div><span>Verified rewards paid</span><strong><CountUp cents={Number(ledger.total_paid_cents)} /></strong></div>
       </div>
     </section>

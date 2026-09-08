@@ -571,3 +571,23 @@ body:has(.admin-app) .site-footer{display:none}
   .analytics-support-row{grid-template-columns:1fr}
   .analytics-support-row>div+div{border-left:0;border-top:1px solid var(--line);padding-left:0}
 }
+
+
+/* Market heat — derived from real marketplace activity, not a user count */
+.board-meta .ticker-inner{grid-template-columns:repeat(5,1fr)}
+.market-heat{position:relative}
+.market-heat strong{font-size:28px!important;letter-spacing:-.04em}
+.market-heat small{display:flex!important;align-items:center;gap:6px;margin:7px 0 0!important;font-family:var(--mono);font-size:9px!important;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)!important}
+.market-heat small i{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(255,79,36,.12);flex:0 0 auto}
+@media(max-width:900px){
+  .board-meta .ticker-inner{grid-template-columns:repeat(2,1fr)}
+  .board-meta .ticker-inner>div:nth-child(2n){border-right:0}
+  .board-meta .ticker-inner>div:nth-child(n+3){border-top:1px solid var(--ink)}
+  .board-meta .ticker-inner>div:nth-child(odd){padding-left:0}
+  .board-meta .ticker-inner>div:nth-child(even){padding-left:18px}
+}
+@media(max-width:520px){
+  .board-meta .ticker-inner{grid-template-columns:1fr}
+  .board-meta .ticker-inner>div{border-right:0!important;border-top:1px solid var(--ink);padding-left:0!important}
+  .board-meta .ticker-inner>div:first-child{border-top:0}
+}
