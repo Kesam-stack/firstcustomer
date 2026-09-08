@@ -69,6 +69,7 @@ export type Conversion = {
   payout_error: string | null;
   created_at: string;
   paid_at: string | null;
+  payout_available_at?: string | null;
   x_handle?: string;
 };
 

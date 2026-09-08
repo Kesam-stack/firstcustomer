@@ -17,6 +17,7 @@ export const config = {
   maximumPoolCents: intEnv("FC_MAX_POOL_CENTS", 2_500_000, 1_000, 100_000_000),
   networkNotificationLimit: intEnv("FC_NETWORK_NOTIFICATION_LIMIT", 25, 0, 250),
   rainmakerThreshold: intEnv("FC_RAINMAKER_THRESHOLD", 3, 1, 1000),
+  payoutDelayDays: intEnv("FC_PAYOUT_DELAY_DAYS", 7, 0, 90),
   appUrl: process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === "production" ? "https://firstcustomer.xyz" : "http://localhost:3000"),
   emailFrom: process.env.EMAIL_FROM || "FirstCustomer <alerts@firstcustomer.xyz>",
 };

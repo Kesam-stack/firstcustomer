@@ -62,7 +62,7 @@ export default async function Home() {
         <Link href="/explore">Full market</Link>
       </div>
       <div className="board-head">
-        <span>#</span><span>Company</span><span>Customer</span><span>Reward</span><span>Pool</span><span>Left</span><span>Claims</span><span>Status</span>
+        <span>#</span><span>Company</span><span>Customer</span><span>Reward</span><span>Pool</span><span>Left</span><span>Clicks</span><span>Claims</span><span>Status</span>
       </div>
       <div className="board-list">
         {bounties.length
@@ -74,7 +74,7 @@ export default async function Home() {
               <Link className="button launch-button" href="/create">List the first bounty →</Link>
             </div>}
       </div>
-      <p className="board-rule">Rank is funded demand. Manual listings cannot take #1. Hold #1 for 7 days for $29. A payout enters the ledger only after Stripe confirms the transfer.</p>
+      <p className="board-rule">Rank is funded demand. Manual listings cannot take #1. Hold #1 for 7 days for $29. Approved rewards settle after a {config.payoutDelayDays}-day hold. A payout enters the ledger only after Stripe confirms the transfer.</p>
     </section>
 
     <section className="split-boards shell">

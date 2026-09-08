@@ -72,6 +72,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <div><span>Still on the table</span><strong>{money(pool)}</strong></div>
         <div><span>Remaining</span><strong>{left}</strong></div>
         <div><span>Clicks</span><strong>{traffic.click_count}</strong></div>
+        <div><span>Claims</span><strong>{traffic.referrer_count}</strong></div>
       </div>
       <div className="progress"><div style={{ width: `${pct}%` }} /></div>
       <p className="listing-meta">{traffic.referrer_count} claim{traffic.referrer_count === 1 ? "" : "s"} · {holding ? "Holding #1" : isFunded(bounty) ? "Funded automatic payout" : "Manual payout — cannot take #1"} · {bounty.approved_count}/{bounty.goal_count} approved</p>

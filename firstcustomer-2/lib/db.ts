@@ -223,7 +223,7 @@ export async function listReferrals(bountyId: string): Promise<Referral[]> {
 }
 
 export async function listConversions(bountyId: string): Promise<Conversion[]> {
-  const r = await query<Conversion>(`SELECT c.id,c.referral_id,c.customer_reference,c.reward_cents,c.platform_fee_cents,c.status,c.payout_status,c.stripe_transfer_id,c.payout_error,c.created_at::text,c.paid_at::text,r.x_handle FROM conversion_claims c JOIN referrals r ON r.id=c.referral_id WHERE c.bounty_id=$1 ORDER BY c.created_at DESC`, [bountyId]);
+  const r = await query<Conversion>(`SELECT c.id,c.referral_id,c.customer_reference,c.reward_cents,c.platform_fee_cents,c.status,c.payout_status,c.stripe_transfer_id,c.payout_error,c.created_at::text,c.paid_at::text,c.payout_available_at::text,r.x_handle FROM conversion_claims c JOIN referrals r ON r.id=c.referral_id WHERE c.bounty_id=$1 ORDER BY c.created_at DESC`, [bountyId]);
   return r.rows;
 }
 
@@ -324,7 +324,7 @@ export async function adminListPayouts(status?: string) {
   }
   const r = await query<AdminPayout>(
     `SELECT c.id,c.referral_id,c.customer_reference,c.reward_cents,c.platform_fee_cents,c.status,c.payout_status,
-            c.stripe_transfer_id,c.payout_error,c.created_at::text,c.paid_at::text,r.x_handle,
+            c.stripe_transfer_id,c.payout_error,c.created_at::text,c.paid_at::text,c.payout_available_at::text,r.x_handle,
             b.company_name,b.slug,b.payout_mode,c.bounty_id
        FROM conversion_claims c
        JOIN referrals r ON r.id=c.referral_id

@@ -39,7 +39,7 @@ export default async function Explore({ searchParams }: { searchParams: Promise<
     </div>
 
     <div className="board-head">
-      <span>#</span><span>Company</span><span>Customer</span><span>Reward</span><span>Pool</span><span>Left</span><span>Claims</span><span>Status</span>
+      <span>#</span><span>Company</span><span>Customer</span><span>Reward</span><span>Pool</span><span>Left</span><span>Clicks</span><span>Claims</span><span>Status</span>
     </div>
     <div className="board-list">
       {rows.length

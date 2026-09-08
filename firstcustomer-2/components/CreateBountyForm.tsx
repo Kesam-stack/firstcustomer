@@ -81,7 +81,7 @@ export default function CreateBountyForm({
       <div className="budget-line"><span>Maximum advertised reward pool</span><strong>{total.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}</strong></div>
       {poolTooBig && <div className="error">Pool cannot exceed {maximumPoolDollars.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}. Lower the reward or customer count.</div>}
       {payoutMode === "manual" && <div className="warning">Manual listings appear on the board but cannot take #1. Rank is reserved for automatic-payout campaigns with a card on file.</div>}
-      <p className="form-note">Launch fee {launchFeeDollars.toLocaleString("en-US", { style: "currency", currency: "USD" })}. Automatic payouts charge the company’s saved card for the reward plus a {platformFeePercent}% FirstCustomer fee, then transfer the reward to the referrer. Stripe processing is separate. Max ${maximumRewardDollars.toLocaleString("en-US")} per customer.</p>
+      <p className="form-note">Launch fee {launchFeeDollars.toLocaleString("en-US", { style: "currency", currency: "USD" })}. Automatic payouts are not instant: after approval, FirstCustomer waits before charging the saved card for the reward plus a {platformFeePercent}% fee, then transferring the reward. Stripe processing is separate. Max ${maximumRewardDollars.toLocaleString("en-US")} per customer.</p>
     </section>
 
     <section className="launch-final">

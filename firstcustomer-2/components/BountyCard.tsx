@@ -8,6 +8,7 @@ export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: nu
   const pool = poolCents(bounty.reward_cents, bounty.goal_count, bounty.approved_count);
   const initial = bounty.company_name.trim().charAt(0).toUpperCase();
   const claims = bounty.referrer_count ?? 0;
+  const clicks = bounty.click_count ?? 0;
   const funded = isFunded(bounty);
   const holding = isHoldActive(bounty);
   const live = isLive(bounty);
@@ -28,6 +29,7 @@ export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: nu
     <div className="market-number reward"><span>Reward</span><strong>{money(bounty.reward_cents)}</strong></div>
     <div className="market-number"><span>Pool</span><strong>{money(pool)}</strong></div>
     <div className="market-number"><span>Left</span><strong>{left}</strong></div>
+    <div className="market-number"><span>Clicks</span><strong>{clicks}</strong></div>
     <div className="market-number"><span>Claims</span><strong>{claims}</strong></div>
     <div className="market-status"><span className={live && funded ? "status-verified" : ""}>{statusLabel}</span><small>{statusNote}</small></div>
   </Link>;

@@ -10,7 +10,7 @@ export default function Terms() {
     <p>Companies pay a launch fee to publish a campaign. For automatic-payout campaigns, FirstCustomer also charges a success fee on each approved conversion, in addition to the advertised reward. Stripe processing fees are separate.</p>
 
     <h2>Automatic payouts</h2>
-    <p>If a company chooses automatic payouts, FirstCustomer charges the company’s saved payment method for the reward plus the success fee after the company approves a conversion, then transfers the reward to the referrer’s Stripe Connect account. FirstCustomer is the merchant of record for that charge. A conversion is shown as paid on the public ledger only after the Stripe transfer succeeds. Failed, pending, and manual rewards are not shown as paid.</p>
+    <p>If a company chooses automatic payouts, FirstCustomer does not pay instantly. After the company approves a conversion, there is a settlement hold. When that hold ends, FirstCustomer charges the company’s saved payment method for the reward plus the success fee, then transfers the reward to the referrer’s Stripe Connect account. FirstCustomer is the merchant of record for that charge. A conversion is shown as paid on the public ledger only after the Stripe transfer succeeds. Failed, pending, held, and manual rewards are not shown as paid.</p>
 
     <h2>Manual payouts</h2>
     <p>If a company chooses manual payouts, the company is solely responsible for paying eligible referrers. Manual campaigns may appear on the board but cannot take #1.</p>

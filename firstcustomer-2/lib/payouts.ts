@@ -8,6 +8,7 @@ type PayoutRow = {
   payout_status: string;
   stripe_payment_intent_id: string | null;
   stripe_transfer_id: string | null;
+  payout_available_at: string | null;
   company_name: string;
   stripe_customer_id: string | null;
   stripe_payment_method_id: string | null;
@@ -26,7 +27,7 @@ function chargeId(pi: Stripe.PaymentIntent) {
 
 async function loadConversion(conversionId: string) {
   const r = await query<PayoutRow>(
-    `SELECT c.id,c.reward_cents,c.payout_status,c.stripe_payment_intent_id,c.stripe_transfer_id,
+    `SELECT c.id,c.reward_cents,c.payout_status,c.stripe_payment_intent_id,c.stripe_transfer_id,c.payout_available_at::text,
             b.company_name,b.stripe_customer_id,b.stripe_payment_method_id,b.platform_fee_bps,b.payout_mode,
             r.id referral_id,r.stripe_account_id,r.payouts_enabled
        FROM conversion_claims c
@@ -102,10 +103,42 @@ async function markPaid(row: PayoutRow, paymentIntentId: string, transferId: str
   return { status: "paid" as const, transferId };
 }
 
+function holdUntil(iso: string | null) {
+  if (!iso) return null;
+  const when = Date.parse(iso);
+  if (!Number.isFinite(when) || when <= Date.now()) return null;
+  return iso;
+}
+
+export async function processDuePayouts(limit = 8) {
+  const due = await query<{ id: string }>(
+    `SELECT id FROM conversion_claims
+      WHERE payout_status='payment_pending'
+        AND (payout_available_at IS NULL OR payout_available_at <= NOW())
+      ORDER BY payout_available_at ASC NULLS FIRST
+      LIMIT $1`,
+    [limit],
+  );
+  const results = [];
+  for (const row of due.rows) {
+    try {
+      results.push(await attemptAutomaticPayout(row.id));
+    } catch (error) {
+      console.error("Due payout failed", row.id, error);
+    }
+  }
+  return results;
+}
+
 export async function attemptAutomaticPayout(conversionId: string) {
   const row = await loadConversion(conversionId);
   if (!row) throw new Error("Conversion not found");
   if (row.payout_status === "paid") return { status: "paid", transferId: row.stripe_transfer_id || undefined };
+
+  const held = holdUntil(row.payout_available_at);
+  if (held) {
+    return { status: "held" as const, availableAt: held };
+  }
 
   if (row.payout_mode !== "stripe" || !process.env.STRIPE_SECRET_KEY) {
     await query("UPDATE conversion_claims SET payout_status='not_configured' WHERE id=$1 AND payout_status <> 'paid'", [conversionId]);

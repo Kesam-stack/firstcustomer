@@ -31,7 +31,7 @@ export default async function AdminPayouts({ searchParams }: { searchParams: Pro
           <td>@{row.x_handle}</td>
           <td>{row.customer_reference}</td>
           <td>{money(row.reward_cents)}</td>
-          <td><span className={`status-pill ${row.payout_status === "paid" ? "status-paid" : ""}`}>{row.payout_status}</span>{row.payout_error ? <div className="fineprint">{row.payout_error}</div> : null}</td>
+          <td><span className={`status-pill ${row.payout_status === "paid" ? "status-paid" : ""}`}>{row.payout_available_at && Date.parse(row.payout_available_at) > Date.now() ? `held until ${new Date(row.payout_available_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : row.payout_status}</span>{row.payout_error ? <div className="fineprint">{row.payout_error}</div> : null}</td>
           <td><PayoutRetry id={row.id} status={row.payout_status} /></td>
         </tr>) : <tr><td colSpan={7}>No payouts.</td></tr>}</tbody>
       </table></div>

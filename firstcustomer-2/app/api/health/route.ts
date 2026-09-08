@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { processDuePayouts } from "@/lib/payouts";
 
 export async function GET() {
   try {
     await query("SELECT 1");
+    processDuePayouts(5).catch((error) => console.error("Payout sweep failed", error));
     return NextResponse.json({
       ok: true,
       service: "firstcustomer",

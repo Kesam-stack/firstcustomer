@@ -17,6 +17,7 @@ export default function FounderDashboard({
   payoutReady,
   featuredFeeCents,
   featuredHoldDays,
+  payoutDelayDays,
   checkoutNotice,
 }: {
   bounty: Bounty;
@@ -29,6 +30,7 @@ export default function FounderDashboard({
   payoutReady: boolean;
   featuredFeeCents: number;
   featuredHoldDays: number;
+  payoutDelayDays: number;
   checkoutNotice?: string;
 }) {
   const [message, setMessage] = useState(checkoutNotice || "");
@@ -51,7 +53,9 @@ export default function FounderDashboard({
     });
     const data = await response.json();
     if (!response.ok) return setMessage(data.error || "Could not approve");
-    setMessage(data.payout?.status === "paid" ? "Conversion approved and reward paid." : `Conversion approved. Payout status: ${data.payout?.status || "recorded"}.`);
+    if (data.payout?.status === "paid") setMessage("Conversion approved and reward paid.");
+    else if (data.payout?.status === "held" && data.payout.availableAt) setMessage(`Conversion approved. Payout is held until ${new Date(data.payout.availableAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}.`);
+    else setMessage(`Conversion approved. Payout status: ${data.payout?.status || "recorded"}.`);
     location.reload();
   }
 
@@ -142,7 +146,10 @@ export default function FounderDashboard({
 
     <section className="table-card"><div className="table-head"><h2>Referrers</h2><span>{referrals.length} total</span></div><div className="table-scroll"><table><thead><tr><th>Referrer</th><th>Clicks</th><th>Approved</th><th>Earned</th><th>Payout ready</th><th></th></tr></thead><tbody>{referrals.length ? referrals.map((referral) => <tr key={referral.id}><td>@{referral.x_handle}</td><td>{referral.clicks}</td><td>{referral.approved_conversions}</td><td>{money(referral.earned_cents)}</td><td>{referral.payouts_enabled ? "Yes" : "No"}</td><td><button className="tiny-button" onClick={() => approve(referral.id)}>Approve customer</button></td></tr>) : <tr><td colSpan={6}>No one has claimed this mission yet. Network matches are active above.</td></tr>}</tbody></table></div></section>
 
-    <section className="table-card"><div className="table-head"><h2>Conversions & payouts</h2><span>{conversions.length}</span></div><div className="table-scroll"><table><thead><tr><th>Referrer</th><th>Customer ref</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>{conversions.length ? conversions.map((conversion) => <tr key={conversion.id}><td>@{conversion.x_handle}</td><td>{conversion.customer_reference}</td><td>{money(conversion.reward_cents)}</td><td><span className={`status-pill ${conversion.payout_status === "paid" ? "status-paid" : ""}`}>{conversion.payout_status}</span></td><td>{bounty.payout_mode === "stripe" && conversion.payout_status !== "paid" ? <button className="tiny-button" onClick={() => retry(conversion.id)}>Retry payout</button> : null}</td></tr>) : <tr><td colSpan={5}>No verified customer conversions yet.</td></tr>}</tbody></table></div></section>
-    <p className="fineprint">Automatic payout campaigns charge the company only after approval, then transfer the advertised reward to an eligible Stripe-connected referrer. The configured FirstCustomer success fee is charged in addition to the reward.</p>
+    <section className="table-card"><div className="table-head"><h2>Conversions & payouts</h2><span>{conversions.length}</span></div><div className="table-scroll"><table><thead><tr><th>Referrer</th><th>Customer ref</th><th>Reward</th><th>Status</th><th></th></tr></thead><tbody>{conversions.length ? conversions.map((conversion) => {
+      const heldUntil = conversion.payout_available_at && Date.parse(conversion.payout_available_at) > Date.now() ? new Date(conversion.payout_available_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+      return <tr key={conversion.id}><td>@{conversion.x_handle}</td><td>{conversion.customer_reference}</td><td>{money(conversion.reward_cents)}</td><td><span className={`status-pill ${conversion.payout_status === "paid" ? "status-paid" : ""}`}>{heldUntil ? `held until ${heldUntil}` : conversion.payout_status}</span></td><td>{bounty.payout_mode === "stripe" && conversion.payout_status !== "paid" && !heldUntil ? <button className="tiny-button" onClick={() => retry(conversion.id)}>Retry payout</button> : null}</td></tr>;
+    }) : <tr><td colSpan={5}>No verified customer conversions yet.</td></tr>}</tbody></table></div></section>
+    <p className="fineprint">Automatic payouts are not instant. After you approve a customer, FirstCustomer waits {payoutDelayDays} day{payoutDelayDays === 1 ? "" : "s"} before charging the card and transferring the reward. The success fee is charged in addition to the advertised reward.</p>
   </main>;
 }

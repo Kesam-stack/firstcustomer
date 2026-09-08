@@ -114,6 +114,8 @@ ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS stripe_transfer_id TEXT;
 ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS payout_error TEXT;
 ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
 ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
+ALTER TABLE conversion_claims ADD COLUMN IF NOT EXISTS payout_available_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_conversion_payout_due ON conversion_claims(payout_available_at) WHERE payout_status = 'payment_pending';
 
 CREATE INDEX IF NOT EXISTS idx_conversion_claims_bounty ON conversion_claims(bounty_id);
 CREATE INDEX IF NOT EXISTS idx_conversion_claims_referral ON conversion_claims(referral_id);

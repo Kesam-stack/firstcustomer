@@ -81,7 +81,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;box
 .section-bar h2{font-size:28px;letter-spacing:-.03em;margin:0}
 .section-bar>a{font-size:12px;border-bottom:1px solid var(--ink);padding-bottom:2px}
 
-.board-head,.board-row{display:grid;grid-template-columns:44px 200px minmax(220px,1.2fr) 110px 110px 70px 70px 80px;gap:12px;align-items:center}
+.board-head,.board-row{display:grid;grid-template-columns:44px 180px minmax(200px,1.2fr) 100px 90px 56px 56px 56px 72px;gap:12px;align-items:center}
 .board-head{padding:9px 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--ink)}
 .board-row{min-height:76px;padding:12px 0;border-bottom:1px solid var(--line);transition:background .12s}
 .board-row:hover{background:#ece7dc}
@@ -220,6 +220,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;box
 .listing h1,.public-card h1{font-size:clamp(40px,6vw,64px);letter-spacing:-.04em;line-height:.95;margin:30px 0 18px}
 .bounty-action{font-size:16px;line-height:1.55;color:#3f403c}
 .reward-grid,.stats,.listing-money{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);margin:28px 0 0}
+.listing-money{grid-template-columns:repeat(5,1fr)}
 .reward-grid>div,.stats>div,.listing-money>div{padding:14px 0}
 .reward-grid>div+div,.stats>div+div,.listing-money>div+div{border-left:1px solid var(--ink);padding-left:16px}
 .reward-grid span,.stats span,.listing-money span{display:block;font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;color:var(--ink);margin-bottom:6px}
@@ -323,8 +324,8 @@ body:has(.admin-app) .site-footer{display:none}
 .mechanism-grid p{color:var(--muted);font-size:13px}
 
 @media(max-width:1100px){
-  .board-head,.board-row{grid-template-columns:40px 170px minmax(0,1fr) 90px 90px 60px 70px}
-  .board-head span:nth-child(7),.board-row>.market-number:nth-child(7){display:none}
+  .board-head,.board-row{grid-template-columns:40px 160px minmax(0,1fr) 90px 56px 56px 56px 72px}
+  .board-head span:nth-child(5),.board-row>.market-number:nth-child(5){display:none}
 }
 @media(max-width:1020px){
   .board-launch{grid-template-columns:1fr 1fr; }
@@ -370,7 +371,7 @@ body:has(.admin-app) .site-footer{display:none}
   .economics-grid,.two-col{grid-template-columns:1fr}
   .launch-final{grid-template-columns:1fr}
   .reward-grid,.stats,.listing-money{grid-template-columns:1fr 1fr}
-  .reward-grid>div:nth-child(3),.stats>div:nth-child(3),.listing-money>div:nth-child(3){border-left:0}
+  .reward-grid>div:nth-child(3),.stats>div:nth-child(3),.listing-money>div:nth-child(3),.listing-money>div:nth-child(5){border-left:0}
   .mission-row{grid-template-columns:1fr}
   .distribution-card{grid-template-columns:1fr}
   .distribution-number{text-align:left}

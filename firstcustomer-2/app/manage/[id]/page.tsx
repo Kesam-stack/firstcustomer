@@ -4,6 +4,7 @@ import { hashToken, safeEqualHex } from "@/lib/security";
 import { stripe } from "@/lib/stripe";
 import { applyCheckoutSession } from "@/lib/checkout";
 import { config } from "@/lib/config";
+import { processDuePayouts } from "@/lib/payouts";
 import FounderDashboard from "@/components/FounderDashboard";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     [id],
   );
   const prefix = await query<{ integration_secret_prefix: string | null }>("SELECT integration_secret_prefix FROM bounties WHERE id=$1", [id]);
+  processDuePayouts(8).catch((error) => console.error("Payout sweep failed", error));
   const [referrals, conversions, matchCount] = await Promise.all([listReferrals(id), listConversions(id), networkMatchCount(id)]);
   return <FounderDashboard
     bounty={bounty}
@@ -48,6 +50,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     payoutReady={Boolean(billing.rows[0]?.stripe_customer_id && billing.rows[0]?.stripe_payment_method_id)}
     featuredFeeCents={config.featuredFeeCents}
     featuredHoldDays={config.featuredHoldDays}
+    payoutDelayDays={config.payoutDelayDays}
     checkoutNotice={checkoutNotice}
   />;
 }
