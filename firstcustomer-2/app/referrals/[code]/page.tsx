@@ -22,7 +22,8 @@ export default async function Page({params,searchParams}:{params:Promise<{code:s
       const a=await stripe().accounts.retrieve(r.stripe_account_id);
       const enabled=Boolean(a.payouts_enabled);
       if(enabled!==r.payouts_enabled){
-        await query("UPDATE referrals SET payouts_enabled=$2 WHERE id=$1",[r.id,enabled]);
+        await query("UPDATE referrer_identities SET payouts_enabled=$2,updated_at=NOW() WHERE stripe_account_id=$1",[r.stripe_account_id,enabled]);
+        await query("UPDATE referrals SET payouts_enabled=$2 WHERE stripe_account_id=$1",[r.stripe_account_id,enabled]);
         r={...r,payouts_enabled:enabled};
       }
     }catch{}
