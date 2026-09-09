@@ -28,7 +28,7 @@ export default function MarketHeat({ value }: { value: number }) {
     return () => cancelAnimationFrame(frame);
   }, [target]);
 
-  return <div className="market-heat">
+  return <div className="market-heat" aria-label={`Market heat activity index ${display}`} title="Market Heat is derived from real marketplace activity">
     <span>Market heat</span>
     <strong>{display}</strong>
     <small><i aria-hidden="true" /> Activity index</small>
