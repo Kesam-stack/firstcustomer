@@ -38,6 +38,17 @@ export function relativeTime(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+export function timeUntil(iso: string) {
+  const target = new Date(iso).getTime();
+  if (!Number.isFinite(target)) return "";
+  const seconds = Math.round((target - Date.now()) / 1000);
+  if (seconds <= 0) return "ended";
+  if (seconds < 60) return "under 1m";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  return `${Math.floor(seconds / 86400)}d`;
+}
+
 export function absoluteTime(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
     month: "short",

@@ -34,11 +34,12 @@ export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>)
   }
 }
 
-export const bountySelect = `id,slug,creator_email,creator_x_handle,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,approved_count,launch_fee_cents,platform_fee_bps,payout_mode,payment_verified,is_featured,featured_until::text,network_distribution,network_matched_count,last_network_match_at::text,status,created_at::text,activated_at::text`;
+export const bountySelect = `id,slug,creator_email,creator_x_handle,company_name,product_url,company_description,category,company_logo_url,headline,desired_action,referral_terms,reward_cents,goal_count,approved_count,launch_fee_cents,platform_fee_bps,payout_mode,payment_verified,is_featured,featured_until::text,expires_at::text,network_distribution,network_matched_count,last_network_match_at::text,status,created_at::text,activated_at::text`;
 
+const notExpired = `(expires_at IS NULL OR expires_at > NOW())`;
 const featuredLive = `(featured_until IS NOT NULL AND featured_until > NOW())`;
 const fundedLiveRow = `(payment_verified AND payout_mode='stripe')`;
-const liveLane = `(status='active' AND approved_count < goal_count)`;
+const liveLane = `(status='active' AND approved_count < goal_count AND ${notExpired})`;
 const boardRankOrder = `CASE WHEN ${liveLane} THEN 0 ELSE 1 END, CASE WHEN ${featuredLive} THEN 0 ELSE 1 END, CASE WHEN ${fundedLiveRow} THEN 0 ELSE 1 END, CASE WHEN ${featuredLive} THEN featured_until END DESC NULLS LAST, reward_cents DESC, created_at ASC, id ASC`;
 
 export async function getBountyBySlug(slug: string): Promise<Bounty | null> {
@@ -51,16 +52,19 @@ export async function getBountyById(id: string): Promise<Bounty | null> {
   return r.rows[0] ?? null;
 }
 
-export async function listMarketplaceBounties(limit = 12, category?: string, sort: "recommended" | "reward" | "new" | "closing" = "recommended"): Promise<Bounty[]> {
+export async function listMarketplaceBounties(limit = 12, category?: string, sort: "recommended" | "reward" | "new" | "closing" | "flash" = "recommended"): Promise<Bounty[]> {
   const fundedFirst = `(CASE WHEN ${fundedLiveRow} THEN 0 ELSE 1 END)`;
   const order = {
     recommended: boardRankOrder,
     reward: boardRankOrder,
     new: "created_at DESC",
     closing: `CASE WHEN ${liveLane} THEN 0 ELSE 1 END, ${fundedFirst},(goal_count-approved_count) ASC,reward_cents DESC`,
+    flash: `expires_at ASC, ${fundedFirst}, reward_cents DESC`,
   }[sort];
   const values: unknown[] = [];
-  let where = "status IN ('active','paused','closed')";
+  let where = sort === "flash"
+    ? `status='active' AND approved_count < goal_count AND expires_at IS NOT NULL AND expires_at > NOW()`
+    : "status IN ('active','paused','closed')";
   if (category && category !== "All") {
     values.push(category);
     where += ` AND category=$${values.length}`;
@@ -76,23 +80,24 @@ export async function listMarketplaceBounties(limit = 12, category?: string, sor
   return r.rows;
 }
 
-const fundedLive = `status='active' AND approved_count<goal_count AND payment_verified AND payout_mode='stripe'`;
+const fundedLive = `status='active' AND approved_count<goal_count AND payment_verified AND payout_mode='stripe' AND ${notExpired}`;
 
 export async function marketplaceStats() {
   const r = await query<{ campaigns: number; open_reward_cents: string; network_members: number; active_recently: number; highest_reward_cents: string; click_count: number }>(
     `SELECT
-       (SELECT COUNT(*)::int FROM bounties WHERE status='active' AND approved_count<goal_count) campaigns,
+       (SELECT COUNT(*)::int FROM bounties WHERE status='active' AND approved_count<goal_count AND ${notExpired}) campaigns,
        (SELECT COALESCE(SUM((goal_count-approved_count)*reward_cents),0)::text FROM bounties WHERE ${fundedLive}) open_reward_cents,
        (SELECT COUNT(*)::int FROM network_members WHERE status='active') network_members,
        (SELECT COUNT(*)::int FROM network_members WHERE status='active' AND last_seen_at IS NOT NULL AND last_seen_at > NOW() - INTERVAL '15 minutes') active_recently,
        (SELECT COALESCE(MAX(reward_cents),0)::text FROM bounties WHERE ${fundedLive}) highest_reward_cents,
-       (SELECT COALESCE(SUM(r.clicks),0)::int FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE b.status='active' AND b.approved_count<b.goal_count) click_count`,
+       (SELECT COALESCE(SUM(r.clicks),0)::int FROM referrals r JOIN bounties b ON b.id=r.bounty_id WHERE b.status='active' AND b.approved_count<b.goal_count AND (b.expires_at IS NULL OR b.expires_at > NOW())) click_count`,
   );
   return r.rows[0] ?? { campaigns: 0, open_reward_cents: "0", network_members: 0, active_recently: 0, highest_reward_cents: "0", click_count: 0 };
 }
 
 export async function getBountyRank(bounty: Bounty): Promise<number | null> {
   if (bounty.status !== "active" || bounty.approved_count >= bounty.goal_count) return null;
+  if (bounty.expires_at && Date.parse(bounty.expires_at) <= Date.now()) return null;
   if (!bounty.payment_verified || bounty.payout_mode !== "stripe") return null;
   const featuredUntil = bounty.featured_until && Date.parse(bounty.featured_until) > Date.now() ? bounty.featured_until : null;
   const r = await query<{ rank: number }>(
@@ -106,6 +111,7 @@ export async function getBountyRank(bounty: Bounty): Promise<number | null> {
      SELECT COUNT(*)::int + 1 AS rank
        FROM bounties b, me
       WHERE b.status='active' AND b.approved_count < b.goal_count
+        AND (b.expires_at IS NULL OR b.expires_at > NOW())
         AND b.payment_verified AND b.payout_mode='stripe'
         AND (
           ((b.featured_until IS NOT NULL AND b.featured_until > NOW()) AND NOT me.featured)
@@ -475,7 +481,7 @@ export async function listMemberMatches(memberId: string, limit = 40): Promise<C
     `SELECT b.${bountySelect.replaceAll(",", ",b.")},cm.id match_id,cm.score match_score,cm.reason match_reason,cm.status match_status
        FROM campaign_matches cm
        JOIN bounties b ON b.id=cm.bounty_id
-      WHERE cm.member_id=$1 AND b.status='active' AND b.approved_count<b.goal_count
+      WHERE cm.member_id=$1 AND b.status='active' AND b.approved_count<b.goal_count AND (b.expires_at IS NULL OR b.expires_at > NOW())
       ORDER BY CASE cm.status WHEN 'claimed' THEN 0 ELSE 1 END,cm.score DESC,b.reward_cents DESC,cm.created_at DESC
       LIMIT $2`,
     [memberId, limit],

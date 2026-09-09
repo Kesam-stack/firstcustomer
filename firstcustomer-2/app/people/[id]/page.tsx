@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import BountyCard from "@/components/BountyCard";
 import LedgerRow from "@/components/LedgerRow";
 import { getPublicReferrerProfile, listMarketplaceBounties, listPublicPayoutsByIdentity } from "@/lib/db";
-import { money } from "@/lib/format";
+import { money, tweetIntent } from "@/lib/format";
 import { rankFunded } from "@/lib/market";
 import { siteUrl } from "@/lib/site";
 
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     description,
     alternates: { canonical: `/people/${profile.identity_id}` },
     openGraph: { title, description, type: "profile", url: siteUrl(`/people/${profile.identity_id}`) },
-    twitter: { card: "summary", title, description },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -52,6 +52,12 @@ export default async function PublicReferrerPage({ params }: { params: Promise<{
       </div>
       <div className="profile-actions">
         <Link className="button launch-button" href="/explore">Find a mission →</Link>
+        {profile.paid_customers > 0 && <a
+          className="button secondary"
+          target="_blank"
+          rel="noreferrer"
+          href={tweetIntent(`I've earned ${money(profile.paid_cents)} bringing verified customers to companies on FirstCustomer. Every payout is Stripe-settled and public: ${siteUrl(`/people/${profile.identity_id}`)}`)}
+        >Share my earnings on X</a>}
         <Link className="button secondary" href="/leaderboard">Leaderboard</Link>
       </div>
     </section>

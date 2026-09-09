@@ -24,6 +24,7 @@ export type Bounty = {
   payment_verified: boolean;
   is_featured: boolean;
   featured_until: string | null;
+  expires_at: string | null;
   network_distribution: boolean;
   network_matched_count: number;
   last_network_match_at: string | null;

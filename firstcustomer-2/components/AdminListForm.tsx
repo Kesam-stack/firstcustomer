@@ -45,6 +45,7 @@ export default function AdminListForm() {
       <label>Reward<input name="rewardDollars" required type="number" defaultValue="50" /></label>
       <label>Customers<input name="goalCount" required type="number" defaultValue="10" /></label>
     </div>
+    <label>Flash: auto-close after N hours <span>optional — leave blank for no expiry</span><input name="expiresInHours" type="number" min="1" max="2160" placeholder="e.g. 48" /></label>
     <input type="hidden" name="category" value="Fintech" />
     {message && <div className="notice">{message}</div>}
     <button className="button launch-button" disabled={loading}>{loading ? "Publishing…" : "Publish complimentary listing →"}</button>

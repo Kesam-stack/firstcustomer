@@ -50,7 +50,7 @@ export default async function Home() {
       <div className="home-hero-grid">
         <div className="home-hero-copy">
           <h1>Pay for customers.<br />Not clicks.</h1>
-          <p className="board-sub">Companies publish the exact customer outcome they want and the reward they will pay. People bring qualified customers. FirstCustomer tracks attribution and records the payout.</p>
+          <p className="board-sub">Companies publish the exact customer outcome they want and the reward they will pay. People who already know your market bring the customers. FirstCustomer tracks attribution and records the payout.</p>
           <div className="hero-role-actions">
             <Link className="button launch-button" href="/create">I need customers →</Link>
             <Link className="button secondary" href="/explore">I want to earn →</Link>

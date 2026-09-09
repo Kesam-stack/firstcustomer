@@ -7,6 +7,7 @@ import { referrerIdentityFingerprint } from "@/lib/identity";
 import { limitOrThrow } from "@/lib/rateLimit";
 import { siteUrl } from "@/lib/site";
 import { optionalXPostUrl } from "@/lib/validation";
+import { isExpired } from "@/lib/market";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     const { slug } = await params;
     const bounty = await getBountyBySlug(slug);
     if (!bounty || bounty.status !== "active") return NextResponse.json({ error: "Campaign is not active." }, { status: 404 });
+    if (isExpired(bounty)) return NextResponse.json({ error: "This flash bounty has closed." }, { status: 404 });
 
     const body = await req.json();
     const handle = cleanHandle(String(body.xHandle || ""));

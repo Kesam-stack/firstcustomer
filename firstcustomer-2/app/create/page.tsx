@@ -10,7 +10,7 @@ export default async function Create({ searchParams }: { searchParams: Promise<{
     <div className="create-intro">
       <span className="eyebrow">List</span>
       <h1>Put a price on a customer.</h1>
-      <p>Highest funded bounty sits at #1. Write the acceptance test first.</p>
+      <p>You only pay when you approve a real customer. Highest funded bounty sits at #1 — write the acceptance test first.</p>
       {params.cancelled === "1" && <div className="warning" style={{ marginTop: 18 }}>Checkout was cancelled. Nothing was charged.</div>}
       <div className="create-rail">
         <div><span>01</span><strong>Company</strong><small>What you sell</small></div>
