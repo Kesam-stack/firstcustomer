@@ -245,6 +245,11 @@ CREATE INDEX IF NOT EXISTS idx_conversion_fraud_review
   WHERE fraud_status <> 'clear';
 
 
+-- Flash bounties: optional time box. NULL means the bounty never auto-expires.
+ALTER TABLE bounties ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_bounties_expires_at ON bounties(expires_at) WHERE expires_at IS NOT NULL;
+
+
 -- Privacy-preserving first-party product analytics.
 CREATE TABLE IF NOT EXISTS analytics_events (
   id BIGSERIAL PRIMARY KEY,

@@ -11,7 +11,7 @@ const categories = ["All", "Software", "Artificial Intelligence", "Fintech", "Co
 export default async function Explore({ searchParams }: { searchParams: Promise<{ category?: string; sort?: string }> }) {
   const params = await searchParams;
   const category = categories.includes(params.category || "") ? params.category! : "All";
-  const sort = ["reward", "new", "closing", "recommended"].includes(params.sort || "") ? params.sort as "recommended" | "reward" | "new" | "closing" : "reward";
+  const sort = ["reward", "new", "closing", "recommended", "flash"].includes(params.sort || "") ? params.sort as "recommended" | "reward" | "new" | "closing" | "flash" : "reward";
   let rows = [] as Awaited<ReturnType<typeof listMarketplaceBounties>>;
   let stats = { campaigns: 0, open_reward_cents: "0", network_members: 0, highest_reward_cents: "0", click_count: 0 };
   try { [rows, stats] = await Promise.all([listMarketplaceBounties(100, category, sort), marketplaceStats()]); } catch {}
@@ -35,6 +35,7 @@ export default async function Explore({ searchParams }: { searchParams: Promise<
         <Link className={sort === "reward" ? "control active" : "control"} href={`/explore?category=${encodeURIComponent(category)}&sort=reward`}>Rank</Link>
         <Link className={sort === "new" ? "control active" : "control"} href={`/explore?category=${encodeURIComponent(category)}&sort=new`}>New</Link>
         <Link className={sort === "closing" ? "control active" : "control"} href={`/explore?category=${encodeURIComponent(category)}&sort=closing`}>Closing</Link>
+        <Link className={sort === "flash" ? "control active" : "control"} href={`/explore?category=${encodeURIComponent(category)}&sort=flash`}>⚡ Flash</Link>
       </div>
     </div>
 

@@ -23,7 +23,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const body = await req.json();
     const matchId = String(body.matchId || "");
     const matchResult = await query<any>(
-      `SELECT cm.id,cm.status match_status,b.id bounty_id,b.slug,b.status bounty_status
+      `SELECT cm.id,cm.status match_status,b.id bounty_id,b.slug,b.status bounty_status,
+              (b.expires_at IS NOT NULL AND b.expires_at <= NOW()) bounty_expired
          FROM campaign_matches cm
          JOIN bounties b ON b.id=cm.bounty_id
         WHERE cm.id=$1 AND cm.member_id=$2`,
@@ -31,7 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     );
     const match = matchResult.rows[0];
     if (!match || match.match_status === "declined") return NextResponse.json({ error: "Mission not available" }, { status: 404 });
-    if (match.bounty_status !== "active") return NextResponse.json({ error: "Campaign is closed" }, { status: 409 });
+    if (match.bounty_status !== "active" || match.bounty_expired) return NextResponse.json({ error: "Campaign is closed" }, { status: 409 });
     if (!member.x_handle) {
       return NextResponse.json({ error: "Add an X handle when joining the network before claiming a mission." }, { status: 400 });
     }

@@ -22,6 +22,7 @@ export async function POST(req: Request) {
       goalCount: Number(body.goalCount),
       companyLogoUrl: body.companyLogoUrl,
       slug: body.slug || undefined,
+      expiresInHours: body.expiresInHours ? Number(body.expiresInHours) : null,
     });
     return NextResponse.json(result);
   } catch (error) {

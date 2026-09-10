@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Bounty } from "@/lib/types";
-import { money, poolCents, remaining } from "@/lib/format";
-import { isFunded, isHoldActive, isLive } from "@/lib/market";
+import { money, poolCents, remaining, timeUntil } from "@/lib/format";
+import { isExpired, isFlash, isFunded, isHoldActive, isLive } from "@/lib/market";
 
 export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: number }) {
   const left = remaining(bounty.goal_count, bounty.approved_count);
@@ -12,18 +12,21 @@ export default function BountyCard({ bounty, rank }: { bounty: Bounty; rank?: nu
   const funded = isFunded(bounty);
   const holding = isHoldActive(bounty);
   const live = isLive(bounty);
+  const expired = isExpired(bounty);
+  const flash = isFlash(bounty) && live;
   const statusLabel = !live
-    ? bounty.status === "paused" ? "Paused" : "Closed"
+    ? expired ? "Ended" : bounty.status === "paused" ? "Paused" : "Closed"
     : holding ? "Hold #1" : funded ? (bounty.launch_fee_cents === 0 ? "Live" : "Funded") : bounty.payment_verified ? "Manual" : "Pending";
   const statusNote = !live
-    ? "Not ranking"
-    : holding ? "Paid pin" : funded ? (bounty.launch_fee_cents === 0 ? "Fee waived" : "Auto payout") : "Cannot take #1";
+    ? expired ? "Flash closed" : "Not ranking"
+    : flash ? `Ends in ${timeUntil(bounty.expires_at!)}` : holding ? "Paid pin" : funded ? (bounty.launch_fee_cents === 0 ? "Fee waived" : "Auto payout") : "Cannot take #1";
+  const subLabel = flash ? `⚡ ${timeUntil(bounty.expires_at!)} left` : holding && live ? "Hold #1" : bounty.category;
 
   return <Link href={`/b/${bounty.slug}`} className={`board-row${live ? "" : " closed"}`}>
     <div className={`board-rank${rank === 1 ? " top" : ""}`}>{rank ? String(rank).padStart(2, "0") : "—"}</div>
     <div className="market-company">
       <div className="company-mark">{bounty.company_logo_url ? <img src={bounty.company_logo_url} alt="" /> : initial}</div>
-      <div><strong>{bounty.company_name}</strong><span>{holding && live ? "Hold #1" : bounty.category}</span></div>
+      <div><strong>{bounty.company_name}</strong><span>{subLabel}</span></div>
     </div>
     <div className="market-mission"><strong>{bounty.headline}</strong><span>{bounty.desired_action}</span></div>
     <div className="market-number reward"><span>Reward</span><strong>{money(bounty.reward_cents)}</strong></div>

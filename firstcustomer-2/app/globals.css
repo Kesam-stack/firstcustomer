@@ -591,3 +591,24 @@ body:has(.admin-app) .site-footer{display:none}
   .board-meta .ticker-inner>div{border-right:0!important;border-top:1px solid var(--ink);padding-left:0!important}
   .board-meta .ticker-inner>div:first-child{border-top:0}
 }
+
+
+/* Promote console — admin content generator, /admin/promote */
+.promote-state{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--ink);margin:0 0 30px}
+.promote-state>div{padding:16px 14px;border-right:1px solid var(--line)}
+.promote-state>div:last-child{border-right:0}
+.promote-state span{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.promote-state strong{font-family:var(--mono);font-size:22px;font-weight:500}
+.promote-console{border-top:1px solid var(--ink);margin-top:26px}
+.promote-card{padding:24px 0;border-bottom:1px solid var(--ink)}
+.promote-card-head h3{margin:0;font-size:15px}
+.promote-card-head p{margin:6px 0 0;color:var(--muted);font-size:12px;max-width:640px}
+.promote-block{margin-top:16px}
+.promote-text{display:block;width:100%;border:1px solid var(--ink);background:var(--white);padding:13px 12px;color:var(--ink);font-size:13px;line-height:1.5;font-family:var(--mono);resize:vertical}
+.promote-actions{display:flex;gap:10px;margin-top:8px}
+.promote-actions .button{min-height:36px;padding:8px 14px;font-size:11px;width:auto}
+@media(max-width:760px){
+  .promote-state{grid-template-columns:1fr 1fr}
+  .promote-state>div:nth-child(2n){border-right:0}
+  .promote-state>div:nth-child(n+3){border-top:1px solid var(--line)}
+}

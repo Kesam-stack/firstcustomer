@@ -2,10 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getBountyBySlug, getBountyRank, bountyTraffic } from "@/lib/db";
-import { money, poolCents, remaining, tweetIntent } from "@/lib/format";
+import { money, poolCents, remaining, timeUntil, tweetIntent } from "@/lib/format";
 import ReferralBox from "@/components/ReferralBox";
 import { config } from "@/lib/config";
-import { isFunded, isHoldActive } from "@/lib/market";
+import { isExpired, isFlash, isFunded, isHoldActive } from "@/lib/market";
 import { CANONICAL_ORIGIN } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -48,16 +48,20 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const pct = Math.min(100, Math.round((bounty.approved_count / bounty.goal_count) * 100));
   const host = new URL(bounty.product_url).hostname;
   const holding = isHoldActive(bounty);
+  const expired = isExpired(bounty);
+  const flash = isFlash(bounty);
+  const acceptingReferrals = bounty.status === "active" && !expired;
   const share = tweetIntent(`${bounty.company_name} is paying ${money(bounty.reward_cents)} per verified customer on FirstCustomer. ${config.appUrl}/b/${bounty.slug}`);
 
   return <main className="narrow page-pad">
     <div className="listing">
       <div className="bounty-topbar">
-        {bounty.status === "active" ? <span className="live-dot" /> : null}
-        <b>{rank ? `#${rank} on the board` : bounty.status === "closed" ? "Closed" : bounty.status === "paused" ? "Paused" : isFunded(bounty) ? bounty.status.toUpperCase() : "Manual payout"}</b>
+        {acceptingReferrals ? <span className="live-dot" /> : null}
+        <b>{rank ? `#${rank} on the board` : expired ? "Ended" : bounty.status === "closed" ? "Closed" : bounty.status === "paused" ? "Paused" : isFunded(bounty) ? bounty.status.toUpperCase() : "Manual payout"}</b>
         <span>{bounty.category}</span>
-        {bounty.status === "closed" ? <span className="verified-badge">Closed</span> : holding ? <span className="verified-badge">Hold #1</span> : isFunded(bounty) ? <span className="verified-badge">{bounty.launch_fee_cents === 0 ? "Fee waived · live" : "Funded auto payout"}</span> : bounty.payment_verified ? <span className="verified-badge">Launch paid · manual</span> : null}
+        {expired ? <span className="verified-badge">Flash ended</span> : bounty.status === "closed" ? <span className="verified-badge">Closed</span> : holding ? <span className="verified-badge">Hold #1</span> : isFunded(bounty) ? <span className="verified-badge">{bounty.launch_fee_cents === 0 ? "Fee waived · live" : "Funded auto payout"}</span> : bounty.payment_verified ? <span className="verified-badge">Launch paid · manual</span> : null}
       </div>
+      {flash && !expired ? <p className="listing-meta">⚡ Flash bounty — closes in {timeUntil(bounty.expires_at!)}</p> : null}
 
       <div className="campaign-company">
         <div className="company-mark">{bounty.company_logo_url ? <img src={bounty.company_logo_url} alt="" /> : bounty.company_name[0]}</div>
@@ -88,9 +92,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
 
       {ref
         ? <a className="button dark full" href={`/r/${encodeURIComponent(ref)}`}>Continue to {bounty.company_name} →</a>
-        : bounty.status === "active"
+        : acceptingReferrals
           ? <ReferralBox slug={bounty.slug} companyName={bounty.company_name} payoutMode={bounty.payout_mode} />
-          : <div className="notice">This campaign is no longer accepting referrals.</div>}
+          : <div className="notice">{expired ? "This flash bounty has closed." : "This campaign is no longer accepting referrals."}</div>}
 
       <div className="two-actions listing-share">
         <a className="button secondary" href={share} target="_blank" rel="noreferrer">Share this bounty on X</a>

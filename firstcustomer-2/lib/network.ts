@@ -20,6 +20,7 @@ export async function matchCampaignToNetwork(bountyId: string) {
        JOIN network_members m ON m.status='active'
       WHERE b.id=$1
         AND b.status='active'
+        AND (b.expires_at IS NULL OR b.expires_at > NOW())
         AND b.network_distribution=TRUE
         AND (cardinality(m.categories)=0 OR b.category = ANY(m.categories) OR 'All' = ANY(m.categories))
      ON CONFLICT (bounty_id, member_id)
@@ -52,7 +53,7 @@ export async function matchMemberToCampaigns(memberId: string) {
               ELSE 'Open network opportunity'
             END
        FROM network_members m
-       JOIN bounties b ON b.status='active' AND b.network_distribution=TRUE AND b.approved_count<b.goal_count
+       JOIN bounties b ON b.status='active' AND b.network_distribution=TRUE AND b.approved_count<b.goal_count AND (b.expires_at IS NULL OR b.expires_at > NOW())
       WHERE m.id=$1
         AND m.status='active'
         AND (cardinality(m.categories)=0 OR b.category = ANY(m.categories) OR 'All' = ANY(m.categories))
